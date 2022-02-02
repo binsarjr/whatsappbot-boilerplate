@@ -1,0 +1,36 @@
+{
+    "name": "wablast",
+    "version": "1.0.0",
+    "main": "index.js",
+    "license": "MIT",
+    "scripts": {
+        "start": "NODE_ENV=development nodemon",
+        "prod": "NODE_ENV=prod nodemon",
+        "debug": "DEBUG_LEVEL=debug NODE_ENV=development nodemon",
+        "build": "rm -rf ./build && NODE_ENV=production tsc",
+        "up": "yarn build && scp -r build package.json ecosystem.config.js pi@raspberrypi.local:Pemograman/presensi"
+    },
+    "dependencies": {
+        "@adiwajshing/baileys": "^4.0.0",
+        "@adiwajshing/keyed-db": "^0.2.4",
+        "@hapi/boom": "^9.1.4",
+        "@ptkdev/logger": "^1.8.0",
+        "commander": "^8.3.0",
+        "dotenv": "^15.0.0",
+        "glob": "^7.2.0",
+        "p-queue": "^6.6.2",
+        "qrcode-terminal": "^0.12.0",
+        "string-argv": "^0.3.1"
+    },
+    "devDependencies": {
+        "@types/glob": "^7.1.4",
+        "@types/node": "^16.11.7",
+        "eslint-config-prettier": "^8.3.0",
+        "eslint-plugin-prettier": "^4.0.0",
+        "nodemon": "^2.0.13",
+        "prettier": "^2.4.1",
+        "ts-node": "^10.3.0",
+        "tsc": "^2.0.3",
+        "typescript": "^4.4.3"
+    }
+}
