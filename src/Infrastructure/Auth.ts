@@ -15,7 +15,7 @@ export default class Auth {
     store: Store
     saveState: () => void
     constructor(filepath: string) {
-        this.store = new Store(filepath)
+        this.store = new Store({ filepath })
         let { saveState, state } = useSingleFileAuthState(this.store.filepath)
         this.state = state
         this.saveState = saveState

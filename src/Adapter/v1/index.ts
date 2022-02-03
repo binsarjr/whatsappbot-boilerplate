@@ -1,4 +1,4 @@
-import WABOT from '../../../Infrastructure/WABOT'
+import WABOT from '../../Infrastructure/WABOT'
 
 const bot = new WABOT({
     name: 'test',

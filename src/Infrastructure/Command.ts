@@ -2,6 +2,7 @@ import { proto, WASocket } from '@adiwajshing/baileys'
 import { Command as Commander, CommanderError } from 'commander'
 import PQueue from 'p-queue'
 import Auth from './Auth'
+import Logger from './Logger'
 import { getCaption } from './Message'
 import {
     CmdType,
@@ -34,10 +35,10 @@ export default class Command {
             configuration.pattern ||= ''
             !configuration.whoCanUse?.length &&
                 (configuration.whoCanUse = ['all'])
-            // Logger.info(
-            //     configuration.name || configuration.pattern.toString(),
-            //     `Registering command handler for "${event}"`
-            // )
+            Logger.info(
+                configuration.name || configuration.pattern.toString(),
+                `Registering command handler for "${event}"`
+            )
             this.availableCommands[event].push(configuration)
         })
     }
@@ -116,7 +117,6 @@ export default class Command {
             if (m.type === 'append' || m.type === 'notify') {
                 console.log(JSON.stringify(m, undefined, 2))
             }
-            console.log(m, m.messages[0])
 
             if (
                 m.messages[0].key.fromMe ||
@@ -127,6 +127,7 @@ export default class Command {
                 return
 
             let last = m.messages[0]
+            console.log(m, last)
             const message = getCaption(last)
 
             this.availableCommands['chat-update-without-trigger'].forEach(

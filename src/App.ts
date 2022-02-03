@@ -1,6 +1,6 @@
 import { config } from 'dotenv'
 import path from 'path'
-import bot from './Adapter/Command/v1'
+import bot from './Adapter/v1'
 import { AutoImport } from './Infrastructure/Utils/import'
 
 config()
@@ -13,8 +13,8 @@ async function start() {
     // initial load
 
     let autoImportDir = [
-        path.join(__dirname, './Adapter/Tasks/**/*(*.ts|*.js)'),
-        path.join(__dirname, './Adapter/Command/**/*(*.ts|*.js)')
+        path.join(__dirname, './Adapter/*/Tasks/**/*(*.ts|*.js)'),
+        path.join(__dirname, './Adapter/*/Command/**/*(*.ts|*.js)')
     ]
     await AutoImport(autoImportDir)
     await start()

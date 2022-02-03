@@ -25,7 +25,9 @@ export default class WABOT {
         this.name = name
         this.config = config
         this.message = new Message()
-        this.store = new Store(`${this.name}-baileys_store_multi.json`)
+        this.store = new Store({
+            filepath: `${this.name}-baileys_store_multi.json`
+        })
         this.auth = new Auth(`${this.name}.json`)
         if (!this.config.auth) {
             this.config.auth = undefined
