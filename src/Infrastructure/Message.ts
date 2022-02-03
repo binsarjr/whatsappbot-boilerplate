@@ -1,129 +1,159 @@
 import {
     AnyMessageContent,
-    AnyWASocket,
     delay,
     GroupMetadata,
     GroupParticipant,
     isJidGroup,
     MiscMessageGenerationOptions,
     proto,
-    WALegacySocket,
     WASocket
 } from '@adiwajshing/baileys'
 
-class Message {
-    socket: AnyWASocket | null = null
-    static instance: Message
-    static getInstance(): Message {
-        if (!Message.instance) {
-            Message.instance = new Message()
-            Message.instance.socket = null
-        }
-        return Message.instance
+/**
+ * Get message id from replied message
+ * @param chat chat update
+ * @returns string
+ */
+export const getId = (chat: proto.IWebMessageInfo): string => {
+    let id: string =
+        chat.message?.extendedTextMessage?.contextInfo?.stanzaId ?? ''
+    if (id == '') {
+        id = chat.key.id ?? ''
     }
-    bind(socket: AnyWASocket) {
-        Message.instance.socket = socket
-    }
-    /**
-     * Get message id from replied message
-     * @param chat chat update
-     * @returns string
-     */
-    getId(chat: proto.IWebMessageInfo): string {
-        let id: string =
-            chat.message?.extendedTextMessage?.contextInfo?.stanzaId ?? ''
-        if (id == '') {
-            id = chat.key.id ?? ''
-        }
-        return id
-    }
+    return id
+}
 
-    /**
-     * Get personal id
-     * @param chat chat update
-     * @returns string jid
-     */
-    getPersonJid(chat: proto.IWebMessageInfo): string {
-        let jid = chat.key.remoteJid ?? ''
-        return this.isGroup(jid) ? chat.participant || '' : jid
-    }
+/**
+ * Get personal id
+ * @param chat chat update
+ * @returns string jid
+ */
+export const getPersonalJid = (chat: proto.IWebMessageInfo): string => {
+    let jid = chat.key.remoteJid ?? ''
 
-    /**
-     * Check is group id or not
-     * @param jid jid atau id whatsapp
-     * @returns
-     */
-    isGroup(jid: string): boolean {
-        return Boolean(isJidGroup(jid))
-    }
+    return isJidGroup(jid)
+        ? chat.participant || chat.key.participant || ''
+        : jid
+}
 
-    /**
-     * Get caption from message
-     * @param chat chat update
-     * @returns string caption
-     */
-    getCaption(chat: proto.IWebMessageInfo) {
-        let message =
-            chat?.message?.conversation?.toString() ||
-            chat.message?.ephemeralMessage?.message?.extendedTextMessage
-                ?.text ||
-            chat.message?.extendedTextMessage?.text ||
-            ''
+/**
+ * Get caption from message
+ * @param chat chat update
+ * @returns string caption
+ */
+export const getCaption = (chat: proto.IWebMessageInfo) => {
+    let message =
+        chat?.message?.conversation?.toString() ||
+        chat.message?.ephemeralMessage?.message?.extendedTextMessage?.text ||
+        chat.message?.extendedTextMessage?.text ||
+        ''
 
-        if (message == '') {
-            if (
-                chat.message?.imageMessage ||
+    if (message == '') {
+        if (
+            chat.message?.imageMessage ||
+            chat.message?.ephemeralMessage?.message?.imageMessage
+        ) {
+            message =
+                chat.message?.imageMessage?.caption ||
                 chat.message?.ephemeralMessage?.message?.imageMessage
-            ) {
-                message =
-                    chat.message?.imageMessage?.caption ||
-                    chat.message?.ephemeralMessage?.message?.imageMessage
-                        ?.caption ||
-                    ''
-            } else if (
-                chat.message?.videoMessage ||
+                    ?.caption ||
+                ''
+        } else if (
+            chat.message?.videoMessage ||
+            chat.message?.ephemeralMessage?.message?.videoMessage
+        ) {
+            message =
+                chat.message?.videoMessage?.caption ||
                 chat.message?.ephemeralMessage?.message?.videoMessage
-            ) {
-                message =
-                    chat.message?.videoMessage?.caption ||
-                    chat.message?.ephemeralMessage?.message?.videoMessage
-                        ?.caption ||
-                    ''
-            }
+                    ?.caption ||
+                ''
         }
-        return message
     }
+    return message
+}
 
+export const getParticipants = async (
+    socket: WASocket,
+    chatOrMetadataOrkeyOrParticipantsOrJid:
+        | GroupParticipant[]
+        | proto.IWebMessageInfo
+        | GroupMetadata
+        | string,
+    type: 'admin' | 'member' | 'all'
+): Promise<GroupParticipant[]> => {
+    let participants: GroupParticipant[] = []
+
+    if (chatOrMetadataOrkeyOrParticipantsOrJid instanceof Array) {
+        participants = chatOrMetadataOrkeyOrParticipantsOrJid
+    } else if (
+        Object.keys(chatOrMetadataOrkeyOrParticipantsOrJid).includes('key') &&
+        Object.keys(chatOrMetadataOrkeyOrParticipantsOrJid).includes('message')
+    ) {
+        let metadata = await socket!.groupMetadata(
+            (chatOrMetadataOrkeyOrParticipantsOrJid as proto.IWebMessageInfo)
+                .key.remoteJid || ''
+        )
+
+        participants = metadata.participants
+    } else if (typeof chatOrMetadataOrkeyOrParticipantsOrJid === 'string') {
+        let metadata = await socket!.groupMetadata(
+            chatOrMetadataOrkeyOrParticipantsOrJid
+        )
+        participants = metadata.participants
+    } else {
+        participants = (chatOrMetadataOrkeyOrParticipantsOrJid as GroupMetadata)
+            .participants
+    }
+    participants = participants.filter((participant) => {
+        if (type == 'all') return true
+        const isAdmin =
+            participant.isAdmin || participant.isSuperAdmin || participant.admin
+        if (type == 'admin' && isAdmin) return true
+        if (type == 'member' && !isAdmin) return true
+    })
+    return participants
+}
+export default class Message {
+    socket?: WASocket
+    throwIfSocketEmpty() {
+        if (!this.socket)
+            throw new Error('Please bind first before use this function')
+    }
     /**
      * Send Message with typing
      * @param id id whatsapp
      * @param message Object message
      * @param options MessageOptions
      */
-    async sendMessageWTyping(
-        jid: string,
+    sendMessageWTyping = async (
+        jid: proto.IMessageKey,
         message: AnyMessageContent,
         options?: MiscMessageGenerationOptions
-    ): Promise<proto.IWebMessageInfo> {
-        await this.socket!.presenceSubscribe(jid)
+    ): Promise<proto.IWebMessageInfo> => {
+        this.throwIfSocketEmpty()
+        await this.socket!.presenceSubscribe(jid.remoteJid || '')
         await delay(500)
 
-        await this.socket!.sendPresenceUpdate('composing', jid)
+        await this.socket!.sendPresenceUpdate('composing', jid.remoteJid || '')
         await delay(2000)
 
-        let msg = await this.socket!.sendMessage(jid, message, options)
-        await this.socket!.sendPresenceUpdate('paused', jid)
+        let msg = await this.socket!.sendMessage(
+            jid.remoteJid || '',
+            message,
+            options
+        )
+        await this.socket!.sendPresenceUpdate('paused', jid.remoteJid || '')
 
         return msg
     }
 
-    async reply(
+    reply = async (
         chat: proto.IWebMessageInfo,
         message: AnyMessageContent,
         options: MiscMessageGenerationOptions = {}
-    ) {
+    ) => {
         Object.assign(options, { quoted: chat })
-        this.sendMessageWTyping(chat.key.remoteJid || '', message, options)
+        this.sendMessageWTyping(chat.key, message, options)
     }
 
     /**
@@ -132,93 +162,23 @@ class Message {
      * @param message Object message
      * @param options MessageOptions
      */
-    async sendWithRead(
+    sendWithRead = async (
         jid: proto.IMessageKey,
         message: AnyMessageContent,
         options?: MiscMessageGenerationOptions
-    ) {
-        let msg
-        if (Object.keys(this.socket!).includes('chatRead')) {
-            await (this.socket as WALegacySocket)!.chatRead(jid, 1)
-            msg = await this.sendMessageWTyping(
-                jid.remoteJid || '',
-                message,
-                options
-            )
-        } else {
-            await (this.socket as WASocket)!.sendReadReceipt(
-                jid.remoteJid || '',
-                jid.participant || '',
-                [jid.id || '']
-            )
-            msg = await this.sendMessageWTyping(
-                jid.remoteJid || '',
-                message,
-                options
-            )
-        }
-        return msg
+    ) => {
+        this.throwIfSocketEmpty()
+
+        await (this.socket as WASocket)!.sendReadReceipt(
+            jid.remoteJid || '',
+            jid.participant || '',
+            [jid.id || '']
+        )
+
+        return this.sendMessageWTyping(jid, message, options)
     }
 
-    /**
-     * Send Message with Queue
-     * @param id id whatsapp
-     * @param message Object message
-     * @param options MessageOptions
-     */
-    async sendWithQueue(
-        jid: proto.MessageKey,
-        message: AnyMessageContent,
-        options?: MiscMessageGenerationOptions
-    ): Promise<void> {
-        this.sendWithRead(jid, message, options)
-    }
-
-    async getParticipants(
-        chatOrMetadataOrkeyOrParticipants:
-            | GroupParticipant[]
-            | proto.IWebMessageInfo
-            | GroupMetadata
-            | string,
-        type: 'admin' | 'member' | 'all'
-    ): Promise<GroupParticipant[]> {
-        let participants: GroupParticipant[] = []
-
-        if (chatOrMetadataOrkeyOrParticipants instanceof Array) {
-            participants = chatOrMetadataOrkeyOrParticipants
-        } else if (
-            chatOrMetadataOrkeyOrParticipants instanceof proto.WebMessageInfo
-        ) {
-            let metadata = await this.socket!.groupMetadata(
-                chatOrMetadataOrkeyOrParticipants.key.remoteJid || '',
-                false
-            )
-            participants = metadata.participants
-        } else if (typeof chatOrMetadataOrkeyOrParticipants === 'string') {
-            let metadata = await this.socket!.groupMetadata(
-                chatOrMetadataOrkeyOrParticipants,
-                false
-            )
-            participants = metadata.participants
-        } else {
-            participants = (chatOrMetadataOrkeyOrParticipants as GroupMetadata)
-                .participants
-        }
-        participants = participants.filter((participant) => {
-            if (type == 'all') return true
-            if (
-                type == 'admin' &&
-                (participant.isAdmin || participant.isSuperAdmin)
-            )
-                return true
-            if (
-                type == 'member' &&
-                !(participant.isAdmin || participant.isSuperAdmin)
-            )
-                return true
-        })
-        return participants
+    bind(sock: WASocket) {
+        this.socket = sock
     }
 }
-
-export default Message.getInstance()

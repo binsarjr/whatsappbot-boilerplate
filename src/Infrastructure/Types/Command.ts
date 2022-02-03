@@ -20,7 +20,9 @@ export interface CommandPropsHandlerOptions {
     next: (data: object) => void
 }
 
-export type CommandPropsHandler = (kwargs: CommandPropsHandlerOptions) => Promise<void>
+export type CommandPropsHandler = (
+    kwargs: CommandPropsHandlerOptions
+) => Promise<void>
 export type CommandUserType =
     | 'admin'
     | 'dev'
@@ -34,7 +36,7 @@ export interface CommandConfiguration {
      * Command pattern to match. set empty string if you want to match all messages or use event chat-update without trigger
      */
     pattern?: keyof BaileysEventMap<any> | string | RegExp
-    event: CmdType[]
+    events: CmdType[]
     productionOnly?: boolean
     whoCanUse?: CommandUserType[]
     /**

@@ -1,27 +1,12 @@
 import { config } from 'dotenv'
 import path from 'path'
-import Command from './Infrastructure/Command'
-import Message from './Infrastructure/Message'
+import bot from './Adapter/Command/v1'
 import { AutoImport } from './Infrastructure/Utils/import'
-import { WhatsappLegacy } from './Infrastructure/WhatsappAPI'
 
 config()
 
 async function start() {
-    WhatsappLegacy({
-        name: 'Bot Test hehe',
-        config: { printQRInTerminal: true },
-        sockets: [Message.bind],
-        events: [Command.bind]
-    })
-    // WhatsappMultiDevice({
-    //     name: 'bot test md',
-    //     config: {
-    //         printQRInTerminal: true
-    //     },
-    //     sockets: [Message.bind],
-    //     events: [Command.bind]
-    // })
+    bot.start()
 }
 
 ;(async () => {

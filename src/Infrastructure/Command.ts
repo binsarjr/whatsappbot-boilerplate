@@ -1,7 +1,8 @@
-import { BaileysEventEmitter, proto } from '@adiwajshing/baileys'
+import { proto, WASocket } from '@adiwajshing/baileys'
 import { Command as Commander, CommanderError } from 'commander'
-import Logger from './Logger'
-import Message from './Message'
+import PQueue from 'p-queue'
+import Auth from './Auth'
+import { getCaption } from './Message'
 import {
     CmdType,
     CommandConfiguration,
@@ -10,34 +11,33 @@ import {
 } from './Types/Command'
 import { isProducation } from './Utils/validate'
 
-class Command {
-    static instance: Command
-    static getInstance(): Command {
-        if (!Command.instance) {
-            Command.instance = new Command()
-        }
-        return Command.instance
-    }
+let commandCount = 1
 
-    public availableCommands: { [key in CmdType]: CommandConfiguration[] } = {
+export default class Command {
+    queue = new PQueue({
+        concurrency: 3 * commandCount
+    })
+    availableCommands: { [key in CmdType]: CommandConfiguration[] } = {
         'chat-update': [],
         'chat-update-without-trigger': [],
         'list-response-message': []
     }
-
+    constructor() {
+        commandCount++
+    }
     /**
      * Registration command handler
      * @param configuration Command configuration
      */
     register(configuration: CommandConfiguration) {
-        configuration.event.forEach((event) => {
+        configuration.events.forEach((event) => {
             configuration.pattern ||= ''
             !configuration.whoCanUse?.length &&
                 (configuration.whoCanUse = ['all'])
-            Logger.info(
-                configuration.name || configuration.pattern.toString(),
-                `Registering command handler for "${event}"`
-            )
+            // Logger.info(
+            //     configuration.name || configuration.pattern.toString(),
+            //     `Registering command handler for "${event}"`
+            // )
             this.availableCommands[event].push(configuration)
         })
     }
@@ -78,20 +78,19 @@ class Command {
                 next: isNext
             }
         } catch (error) {
-            console.log(error, 'error')
             if (error instanceof CommanderError) {
                 const showHelp = () => {
-                    Message.reply(chat, {
-                        text: (
-                            program.helpInformation() +
-                            '\n' +
-                            helps.join('\n')
-                        ).trim()
-                    })
+                    // reply(chat, {
+                    //     text: (
+                    //         program.helpInformation() +
+                    //         '\n' +
+                    //         helps.join('\n')
+                    //     ).trim()
+                    // })
                 }
                 switch (error.code) {
                     case 'commander.missingArgument':
-                        Message.reply(chat, { text: error.toString() })
+                        // reply(chat, { text: error.toString() })
                         showHelp()
                         break
                     case 'commander.helpDisplayed':
@@ -112,54 +111,12 @@ class Command {
         }
     }
 
-    private async authorization(
-        cmd: CommandConfiguration,
-        chat: proto.IWebMessageInfo
-    ): Promise<boolean> {
-        if (cmd.whoCanUse) {
-            if (cmd.whoCanUse.includes('all')) {
-                return true
-            }
-            const jid = chat.key.remoteJid || ''
-            if (cmd.whoCanUse.includes('private') && !Message.isGroup(jid)) {
-                return true
-            }
-            if (cmd.whoCanUse.includes('group') && Message.isGroup(jid)) {
-                return true
-            }
-            if (cmd.whoCanUse.includes('dev')) {
-                if (Message.getPersonJid(chat) === process.env.DEV_JID)
-                    return true
-            }
-            let participants = await Message.getParticipants(chat, 'all')
-            if (cmd.whoCanUse.includes('admin')) {
-                let admins = await Message.getParticipants(
-                    participants,
-                    'admin'
-                )
-                admins = admins.filter((admin) => admin.id == jid)
-                return Boolean(admins.length)
-            }
-            if (cmd.whoCanUse.includes('member')) {
-                let members = await Message.getParticipants(
-                    participants,
-                    'member'
-                )
-                members = members.filter((member) => member.id == jid)
-                return Boolean(members.length)
-            }
-        }
-        return false
-    }
-
-    /**
-     * Running all registered command handlers
-     */
-    bind(ev: BaileysEventEmitter) {
-        ev.on('messages.upsert', async (m) => {
+    bind(socket: WASocket) {
+        socket.ev.on('messages.upsert', async (m) => {
             if (m.type === 'append' || m.type === 'notify') {
                 console.log(JSON.stringify(m, undefined, 2))
             }
+            console.log(m, m.messages[0])
 
             if (
                 m.messages[0].key.fromMe ||
@@ -170,49 +127,20 @@ class Command {
                 return
 
             let last = m.messages[0]
-            const message = Message.getCaption(last)
+            const message = getCaption(last)
 
-            Command.instance.availableCommands[
-                'chat-update-without-trigger'
-            ].forEach(async (cmd) => {
-                /**
-                 * Auhtorization who can use
-                 */
-                if (!(await Command.instance.authorization(cmd, last))) return
-                /**
-                 * if productionOnly is true then check if is production
-                 */
-                if (cmd.productionOnly && !isProducation()) {
-                    return
-                }
-                let { propsHandler } = cmd
-                let futureProps = {}
-                if (propsHandler) {
-                    let { next, props } =
-                        await Command.instance.propsHandlerLayer(
-                            propsHandler,
-                            last,
-                            message
-                        )
-                    if (!next) return
-                    futureProps = props
-                }
-                cmd.handler({
-                    chat: last,
-                    message,
-                    props: futureProps
-                })
-            })
-
-            // Chat update event handler
-            Command.instance.availableCommands['chat-update'].forEach(
+            this.availableCommands['chat-update-without-trigger'].forEach(
                 async (cmd) => {
-                    const { pattern, handler, propsHandler } = cmd
-
                     /**
                      * Auhtorization who can use
                      */
-                    if (!(await Command.instance.authorization(cmd, last)))
+                    if (
+                        !(await Auth.authorization(
+                            socket,
+                            cmd.whoCanUse!,
+                            last
+                        ))
+                    )
                         return
                     /**
                      * if productionOnly is true then check if is production
@@ -220,19 +148,72 @@ class Command {
                     if (cmd.productionOnly && !isProducation()) {
                         return
                     }
-
-                    let handlerResult: CommandHandler = {
-                        chat: last,
-                        message,
-                        props: {}
+                    let { propsHandler } = cmd
+                    let futureProps = {}
+                    if (propsHandler) {
+                        let { next, props } = await this.propsHandlerLayer(
+                            propsHandler,
+                            last,
+                            message
+                        )
+                        if (!next) return
+                        futureProps = props
                     }
+                    this.queue.add(() =>
+                        cmd.handler({
+                            chat: last,
+                            message,
+                            props: futureProps
+                        })
+                    )
+                }
+            )
 
-                    switch (typeof pattern) {
-                        case 'string':
-                            if (message == pattern) {
+            // Chat update event handler
+            this.availableCommands['chat-update'].forEach(async (cmd) => {
+                const { pattern, handler, propsHandler } = cmd
+
+                /**
+                 * Auhtorization who can use
+                 */
+                if (!(await Auth.authorization(socket, cmd.whoCanUse!, last)))
+                    return
+                /**
+                 * if productionOnly is true then check if is production
+                 */
+                if (cmd.productionOnly && !isProducation()) {
+                    return
+                }
+
+                let handlerResult: CommandHandler = {
+                    chat: last,
+                    message,
+                    props: {}
+                }
+
+                switch (typeof pattern) {
+                    case 'string':
+                        if (message == pattern) {
+                            if (propsHandler) {
+                                let { next, props } =
+                                    await this.propsHandlerLayer(
+                                        propsHandler,
+                                        last,
+                                        message
+                                    )
+                                if (!next) return
+                                handlerResult.props = props
+                            }
+                            this.queue.add(() => handler(handlerResult))
+                        }
+                        break
+                    case 'object':
+                        if (pattern instanceof RegExp) {
+                            let matched = message.match(pattern)
+                            if (matched) {
                                 if (propsHandler) {
                                     let { next, props } =
-                                        await Command.instance.propsHandlerLayer(
+                                        await this.propsHandlerLayer(
                                             propsHandler,
                                             last,
                                             message
@@ -240,42 +221,30 @@ class Command {
                                     if (!next) return
                                     handlerResult.props = props
                                 }
-                                await handler(handlerResult)
-                            }
-                            break
-                        case 'object':
-                            if (pattern instanceof RegExp) {
-                                let matched = message.match(pattern)
-                                if (matched) {
-                                    if (propsHandler) {
-                                        let { next, props } =
-                                            await Command.instance.propsHandlerLayer(
-                                                propsHandler,
-                                                last,
-                                                message
-                                            )
-                                        if (!next) return
-                                        handlerResult.props = props
-                                    }
 
-                                    await handler(handlerResult)
-                                }
+                                this.queue.add(() => handler(handlerResult))
                             }
+                        }
 
-                            break
-                    }
+                        break
                 }
-            )
+            })
 
             // Chat update list response message event handler
-            Command.instance.availableCommands['list-response-message'].forEach(
+            this.availableCommands['list-response-message'].forEach(
                 async (cmd) => {
                     const { pattern, handler, propsHandler } = cmd
 
                     /**
                      * Auhtorization who can use
                      */
-                    if (!(await Command.instance.authorization(cmd, last)))
+                    if (
+                        !(await Auth.authorization(
+                            socket,
+                            cmd.whoCanUse!,
+                            last
+                        ))
+                    )
                         return
                     /**
                      * if productionOnly is true then check if is production
@@ -312,7 +281,7 @@ class Command {
                         if (matched) {
                             if (propsHandler) {
                                 let { next, props } =
-                                    await Command.instance.propsHandlerLayer(
+                                    await this.propsHandlerLayer(
                                         propsHandler,
                                         last,
                                         message
@@ -320,25 +289,22 @@ class Command {
                                 if (!next) return
                                 handlerResult.props = props
                             }
-                            handler(handlerResult)
+                            this.queue.add(() => handler(handlerResult))
                         }
                     } else if (matched) {
                         if (propsHandler) {
-                            let { next, props } =
-                                await Command.instance.propsHandlerLayer(
-                                    propsHandler,
-                                    last,
-                                    message
-                                )
+                            let { next, props } = await this.propsHandlerLayer(
+                                propsHandler,
+                                last,
+                                message
+                            )
                             if (!next) return
                             handlerResult.props = props
                         }
-                        await handler(handlerResult)
+                        this.queue.add(() => handler(handlerResult))
                     }
                 }
             )
         })
     }
 }
-
-export default Command.getInstance()
