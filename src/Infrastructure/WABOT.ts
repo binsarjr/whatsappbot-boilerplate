@@ -43,6 +43,29 @@ export default class WABOT {
         this.eventsBinding.push(...event)
     }
 
+    async clearMessageAll(removeStarred: boolean = false) {
+        for (let chat of this.store.chats.all()) {
+            let messagges: { id: string; fromMe?: boolean }[] =
+                this.store.messages[chat.id]
+                    .toJSON()
+                    .filter((f) => {
+                        if (removeStarred) return true
+                        return !f.starred
+                    })
+                    .map((m) => ({ id: m.key.id! }))
+
+            await this.socket!.chatModify(
+                {
+                    clear: { messages: messagges }
+                },
+                chat.id,
+                // @ts-ignore
+                []
+            )
+        }
+        this.store.clearAll()
+    }
+
     start() {
         this.socket = makeWASocket(this.config)
         this.message.bind(this.socket)

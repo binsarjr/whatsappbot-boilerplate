@@ -181,7 +181,7 @@ export default class Store {
         }, intervalMs)
     }
 
-    public clearAll() {
+    public async clearAll() {
         this.messages = {}
         this.contacts = {}
         this.chats.clear()
@@ -276,7 +276,6 @@ export default class Store {
             for (let update of updates) {
                 const result = this.chats.update(update.id!, (chat) => {
                     if (update.unreadCount! > 0) {
-                        update = { ...update }
                         update.unreadCount =
                             (chat.unreadCount || 0) + (update.unreadCount || 0)
                     }
