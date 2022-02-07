@@ -31,9 +31,9 @@ export const getId = (chat: proto.IWebMessageInfo): string => {
 export const getPersonalJid = (chat: proto.IWebMessageInfo): string => {
     let jid = chat.key.remoteJid ?? ''
 
-    return isJidGroup(jid)
-        ? chat.participant || chat.key.participant || ''
-        : jid
+    return (
+        isJidGroup(jid) ? chat.participant || chat.key.participant || '' : jid
+    ).replace(/:.*@/, '@')
 }
 
 /**

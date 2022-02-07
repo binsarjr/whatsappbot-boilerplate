@@ -117,7 +117,6 @@ export default class Command {
             if (m.type === 'append' || m.type === 'notify') {
                 console.log(JSON.stringify(m, undefined, 2))
             }
-
             if (
                 m.messages[0].key.fromMe ||
                 Object.keys(m.messages[0].message || []).includes(
@@ -125,9 +124,7 @@ export default class Command {
                 )
             )
                 return
-
             let last = m.messages[0]
-            console.log(m, last)
             const message = getCaption(last)
 
             this.availableCommands['chat-update-without-trigger'].forEach(

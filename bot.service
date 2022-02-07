@@ -1,0 +1,12 @@
+[Unit]
+Description=Bot services
+
+[Service]
+User=root
+WorkingDirectory=/root/bot
+EnvironmentFile=/root/bot/.env
+ExecStart=/bin/bash -c "cd /root/bot && node build/App.js"
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
