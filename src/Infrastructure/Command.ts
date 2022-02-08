@@ -3,7 +3,7 @@ import { Command as Commander, CommanderError } from 'commander'
 import PQueue from 'p-queue'
 import Auth from './Auth'
 import Logger from './Logger'
-import { getCaption } from './Message'
+import Message, { getCaption } from './Message'
 import {
     CmdType,
     CommandConfiguration,
@@ -16,8 +16,9 @@ let commandCount = 1
 
 export default class Command {
     queue = new PQueue({
-        concurrency: 3 * commandCount
+        concurrency: 10 * commandCount
     })
+    private message: Message = new Message()
     availableCommands: { [key in CmdType]: CommandConfiguration[] } = {
         'chat-update': [],
         'chat-update-without-trigger': [],
@@ -81,17 +82,17 @@ export default class Command {
         } catch (error) {
             if (error instanceof CommanderError) {
                 const showHelp = () => {
-                    // reply(chat, {
-                    //     text: (
-                    //         program.helpInformation() +
-                    //         '\n' +
-                    //         helps.join('\n')
-                    //     ).trim()
-                    // })
+                    this.message.reply(chat, {
+                        text: (
+                            program.helpInformation() +
+                            '\n' +
+                            helps.join('\n')
+                        ).trim()
+                    })
                 }
                 switch (error.code) {
                     case 'commander.missingArgument':
-                        // reply(chat, { text: error.toString() })
+                        this.message.reply(chat, { text: error.toString() })
                         showHelp()
                         break
                     case 'commander.helpDisplayed':
@@ -113,6 +114,7 @@ export default class Command {
     }
 
     bind(socket: WASocket) {
+        this.message.bind(socket)
         socket.ev.on('messages.upsert', async (m) => {
             if (m.type === 'append' || m.type === 'notify') {
                 console.log(JSON.stringify(m, undefined, 2))

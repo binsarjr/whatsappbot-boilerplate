@@ -1,9 +1,8 @@
 import got from 'got'
 import v1 from '..'
 
-v1.cmd.register({
-    events: ['chat-update'],
-    pattern: /.*/is,
+v1().command.register({
+    events: ['chat-update-without-trigger'],
     whoCanUse: ['private'],
     handler: async ({ chat, message }) => {
         let response: { success: string } = await got
@@ -14,7 +13,7 @@ v1.cmd.register({
                 }
             })
             .json()
-        await v1.message.sendWithRead(chat.key, {
+        await v1().message.sendWithRead(chat.key, {
             text: response.success
         })
     }

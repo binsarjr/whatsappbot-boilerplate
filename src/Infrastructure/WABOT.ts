@@ -13,7 +13,7 @@ import Store from './Store'
 export default class WABOT {
     message: Message
     store: Store
-    cmd: Command
+    command: Command
     auth: Auth
     socket?: WASocket
     private socketsBinding: ((socket: WASocket) => void)[] = []
@@ -33,7 +33,7 @@ export default class WABOT {
             this.config.auth = undefined
         }
         this.config.auth = this.auth.state
-        this.cmd = new Command()
+        this.command = new Command()
     }
 
     addSocketBinding(...socks: ((socket: WASocket) => void)[]) {
@@ -43,26 +43,27 @@ export default class WABOT {
         this.eventsBinding.push(...event)
     }
 
-    async clearMessageAll(removeStarred: boolean = false) {
-        for (let chat of this.store.chats.all()) {
-            let messagges: { id: string; fromMe?: boolean }[] =
-                this.store.messages[chat.id]
-                    .toJSON()
-                    .filter((f) => {
-                        if (removeStarred) return true
-                        return !f.starred
-                    })
-                    .map((m) => ({ id: m.key.id! }))
+    async clear(removeStarred: boolean = false) {
+        // baileys wa socket not working with chat modify for now
+        // for (let chat of this.store.chats.all()) {
+        //     let messagges: { id: string; fromMe?: boolean }[] =
+        //         this.store.messages[chat.id]
+        //             .toJSON()
+        //             .filter((f) => {
+        //                 if (removeStarred) return true
+        //                 return !f.starred
+        //             })
+        //             .map((m) => ({ id: m.key.id! }))
 
-            await this.socket!.chatModify(
-                {
-                    clear: { messages: messagges }
-                },
-                chat.id,
-                // @ts-ignore
-                []
-            )
-        }
+        //     await this.socket!.chatModify(
+        //         {
+        //             clear: { messages: messagges }
+        //         },
+        //         chat.id,
+        //         // @ts-ignore
+        //         []
+        //     )
+        // }
         this.store.clearAll()
     }
 
@@ -71,7 +72,7 @@ export default class WABOT {
         this.message.bind(this.socket)
         this.store.bind(this.socket.ev)
         this.store.saving()
-        this.cmd.bind(this.socket)
+        this.command.bind(this.socket)
         this.socketsBinding.forEach((sock) => sock(this.socket!))
         this.eventsBinding.forEach((ev) => ev(this.socket!.ev))
 

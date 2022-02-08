@@ -1,12 +1,12 @@
 import { config } from 'dotenv'
 import path from 'path'
-import bot from './Adapter/v1'
+import v1 from './Adapter/v1'
 import { AutoImport } from './Infrastructure/Utils/import'
 
 config()
 
 async function start() {
-    bot.start()
+    v1().start()
 }
 
 ;(async () => {
