@@ -1,10 +1,14 @@
 import WABOT from '../../Infrastructure/WABOT'
 
-const bot = new WABOT({
-    name: 'test',
-    config: {
-        printQRInTerminal: true
-    }
-})
+let v1: WABOT | null = null
 
-export default bot
+export default () => {
+    if (v1) return v1
+    v1 = new WABOT({
+        name: 'test',
+        config: {
+            printQRInTerminal: true
+        }
+    })
+    return v1
+}
