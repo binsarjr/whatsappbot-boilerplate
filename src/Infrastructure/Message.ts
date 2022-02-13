@@ -14,7 +14,8 @@ export const getQuotedMessageCaptionWith = (
     type?: 'ephemeralMessage' | 'viewOnceMessage'
 ) => {
     let msg: proto.IMessage | null = m.message!
-    if (type && Object.keys(m).includes(type)) msg = (m.message![type] as proto.IFutureProofMessage)?.message!
+    if (type && Object.keys(m).includes(type))
+        msg = (m.message![type] as proto.IFutureProofMessage)?.message!
     return (
         msg?.extendedTextMessage?.contextInfo?.quotedMessage?.conversation ||
         msg?.imageMessage?.contextInfo?.quotedMessage?.conversation ||
@@ -28,7 +29,8 @@ export const getMessageCaptionWith = (
     type?: 'ephemeralMessage' | 'viewOnceMessage'
 ) => {
     let msg: proto.IMessage | null = m.message!
-    if (type && Object.keys(m).includes(type)) msg = (m.message![type] as proto.IFutureProofMessage)?.message!
+    if (type && Object.keys(m).includes(type))
+        msg = (m.message![type] as proto.IFutureProofMessage)?.message!
     return (
         msg?.conversation ||
         msg?.extendedTextMessage?.text ||
@@ -191,8 +193,16 @@ export default class Message {
         message: AnyMessageContent,
         options: MiscMessageGenerationOptions = {}
     ) => {
-        Object.assign(options, { quoted: chat })
         return this.sendMessageWTyping(chat.key, message, options)
+    }
+
+    replyIt = async (
+        chat: proto.IWebMessageInfo,
+        message: AnyMessageContent,
+        options: MiscMessageGenerationOptions = {}
+    ) => {
+        Object.assign(options, { quoted: chat })
+        return this.reply(chat, message, options)
     }
 
     replyAsPrivate = async (
@@ -200,11 +210,18 @@ export default class Message {
         message: AnyMessageContent,
         options: MiscMessageGenerationOptions = {}
     ) => {
-        let key = chat.key
-        key.remoteJid = getPersonalJid(chat)
-        Object.assign(options, { quoted: chat })
+        chat.key.remoteJid = getPersonalJid(chat)
+        return this.reply(chat, message, options)
+    }
 
-        return this.sendMessageWTyping(key, message, options)
+    replyItAsPrivate = async (
+        chat: proto.IWebMessageInfo,
+        message: AnyMessageContent,
+        options: MiscMessageGenerationOptions = {}
+    ) => {
+        Object.assign(options, { quoted: chat })
+        chat.key.remoteJid = getPersonalJid(chat)
+        return this.reply(chat, message, options)
     }
 
     /**
@@ -233,8 +250,12 @@ export default class Message {
         return {
             reply: async (message, options) =>
                 this.reply(chat, message, options),
+            replyIt: async (message, options) =>
+                this.replyIt(chat, message, options),
             replyAsPrivate: async (message, options) =>
                 this.replyAsPrivate(chat, message, options),
+            replyItAsPrivate: async (message, options) =>
+                this.replyItAsPrivate(chat, message, options),
             sendWithRead: (message, options) =>
                 this.sendWithRead(chat.key, message, options),
             sendMessageWTyping: (message, options) =>

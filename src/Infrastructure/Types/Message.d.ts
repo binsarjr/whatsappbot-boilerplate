@@ -4,21 +4,16 @@ import {
     proto
 } from '@adiwajshing/baileys'
 
+export type SendMessage = (
+    message: AnyMessageContent,
+    options?: MiscMessageGenerationOptions
+) => Promise<proto.IWebMessageInfo>
+
 export interface MessageContext {
-    reply: (
-        message: AnyMessageContent,
-        options?: MiscMessageGenerationOptions
-    ) => Promise<proto.IWebMessageInfo>
-    replyAsPrivate: (
-        message: AnyMessageContent,
-        options?: MiscMessageGenerationOptions
-    ) => Promise<proto.IWebMessageInfo>
-    sendWithRead: (
-        message: AnyMessageContent,
-        options?: MiscMessageGenerationOptions
-    ) => Promise<proto.IWebMessageInfo>
-    sendMessageWTyping: (
-        message: AnyMessageContent,
-        options?: MiscMessageGenerationOptions
-    ) => Promise<proto.IWebMessageInfo>
+    reply: SendMessage
+    replyIt: SendMessage
+    replyAsPrivate: SendMessage
+    replyItAsPrivate: SendMessage
+    sendWithRead: SendMessage
+    sendMessageWTyping: SendMessage
 }
