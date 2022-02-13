@@ -2,8 +2,7 @@ import { proto, WASocket } from '@adiwajshing/baileys'
 import { Command as Commander, CommanderError } from 'commander'
 import PQueue from 'p-queue'
 import Auth from './Auth'
-import Logger from './Logger'
-import Message, { getCaption } from './Message'
+import Message, { getMessageCaption } from './Message'
 import {
     CmdType,
     CommandConfiguration,
@@ -12,20 +11,15 @@ import {
 } from './Types/Command'
 import { isProducation } from './Utils/validate'
 
-let commandCount = 1
-
 export default class Command {
     queue = new PQueue({
-        concurrency: 10 * commandCount
+        concurrency: 10
     })
     private message: Message = new Message()
     availableCommands: { [key in CmdType]: CommandConfiguration[] } = {
         'chat-update': [],
         'chat-update-without-trigger': [],
         'list-response-message': []
-    }
-    constructor() {
-        commandCount++
     }
     /**
      * Registration command handler
@@ -36,10 +30,6 @@ export default class Command {
             configuration.pattern ||= ''
             !configuration.whoCanUse?.length &&
                 (configuration.whoCanUse = ['all'])
-            Logger.info(
-                configuration.name || configuration.pattern.toString(),
-                `Registering command handler for "${event}"`
-            )
             this.availableCommands[event].push(configuration)
         })
     }
@@ -127,7 +117,7 @@ export default class Command {
             )
                 return
             let last = m.messages[0]
-            const message = getCaption(last)
+            const message = getMessageCaption(last) || ''
 
             this.availableCommands['chat-update-without-trigger'].forEach(
                 async (cmd) => {

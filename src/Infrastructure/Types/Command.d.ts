@@ -1,4 +1,4 @@
-import { BaileysEventMap, proto } from '@adiwajshing/baileys'
+import { proto } from '@adiwajshing/baileys'
 import { Command } from 'commander'
 
 export type CmdType =
@@ -31,11 +31,10 @@ export type CommandUserType =
     | 'group'
     | 'all'
 export interface CommandConfiguration {
-    name?: string
     /**
      * Command pattern to match. set empty string if you want to match all messages or use event chat-update without trigger
      */
-    pattern?: keyof BaileysEventMap<any> | string | RegExp
+    pattern?: string | RegExp
     events: CmdType[]
     productionOnly?: boolean
     whoCanUse?: CommandUserType[]

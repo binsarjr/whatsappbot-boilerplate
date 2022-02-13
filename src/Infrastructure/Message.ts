@@ -1,13 +1,65 @@
 import {
     AnyMessageContent,
-    delay,
     GroupMetadata,
     GroupParticipant,
-    isJidGroup,
+    isJidUser,
     MiscMessageGenerationOptions,
     proto,
     WASocket
 } from '@adiwajshing/baileys'
+
+export const getQuotedMessageCaptionWith = (
+    m: proto.IWebMessageInfo,
+    type?: 'ephemeralMessage' | 'viewOnceMessage'
+) => {
+    let msg: proto.IMessage | null =
+        m.message!
+    if (type) msg = (m.message![type] as proto.IFutureProofMessage)?.message!
+    return (
+        msg?.conversation ||
+        msg?.extendedTextMessage?.contextInfo?.quotedMessage?.conversation||
+        msg?.imageMessage?.contextInfo?.quotedMessage?.conversation ||
+        msg?.videoMessage?.contextInfo?.quotedMessage?.conversation ||
+        null
+    )
+}
+
+export const getMessageCaptionWith = (
+    m: proto.IWebMessageInfo,
+    type?: 'ephemeralMessage' | 'viewOnceMessage'
+) => {
+    let msg: proto.IMessage | null = m.message!
+    if (type) msg = (m.message![type] as proto.IFutureProofMessage)?.message!
+    return (
+        msg?.conversation ||
+        msg?.extendedTextMessage?.text||
+        msg?.imageMessage?.caption ||
+        msg?.videoMessage?.caption ||
+        null
+    )
+}
+
+/**
+ * Get caption from message
+ * @param chat chat update
+ * @returns string caption
+ */
+export const getMessageCaption = (m: proto.IWebMessageInfo) =>
+    getMessageCaptionWith(m) ||
+    getMessageCaptionWith(m, 'ephemeralMessage') ||
+    getMessageCaptionWith(m, 'viewOnceMessage') ||
+    null
+
+/**
+ * Get extended caption from message
+ * @param chat chat update
+ * @returns string caption
+ */
+export const getQuotedMessageCaption = (m: proto.IWebMessageInfo) =>
+    getQuotedMessageCaptionWith(m) ||
+    getQuotedMessageCaptionWith(m, 'ephemeralMessage') ||
+    getQuotedMessageCaptionWith(m, 'viewOnceMessage') ||
+    null
 
 /**
  * Get message id from replied message
@@ -16,9 +68,10 @@ import {
  */
 export const getId = (chat: proto.IWebMessageInfo): string => {
     let id: string =
-        chat.message?.extendedTextMessage?.contextInfo?.stanzaId ?? ''
+        chat.message?.extendedTextMessage?.contextInfo?.stanzaId || ''
+
     if (id == '') {
-        id = chat.key.id ?? ''
+        id = chat.key.id || ''
     }
     return id
 }
@@ -29,47 +82,11 @@ export const getId = (chat: proto.IWebMessageInfo): string => {
  * @returns string jid
  */
 export const getPersonalJid = (chat: proto.IWebMessageInfo): string => {
-    let jid = chat.key.remoteJid ?? ''
+    let jid = chat.key.remoteJid || ''
 
     return (
-        isJidGroup(jid) ? chat.participant || chat.key.participant || '' : jid
+        isJidUser(jid) ? jid : chat.participant || chat.key.participant || ''
     ).replace(/:.*@/, '@')
-}
-
-/**
- * Get caption from message
- * @param chat chat update
- * @returns string caption
- */
-export const getCaption = (chat: proto.IWebMessageInfo) => {
-    let message =
-        chat?.message?.conversation?.toString() ||
-        chat.message?.ephemeralMessage?.message?.extendedTextMessage?.text ||
-        chat.message?.extendedTextMessage?.text ||
-        ''
-
-    if (message == '') {
-        if (
-            chat.message?.imageMessage ||
-            chat.message?.ephemeralMessage?.message?.imageMessage
-        ) {
-            message =
-                chat.message?.imageMessage?.caption ||
-                chat.message?.ephemeralMessage?.message?.imageMessage
-                    ?.caption ||
-                ''
-        } else if (
-            chat.message?.videoMessage ||
-            chat.message?.ephemeralMessage?.message?.videoMessage
-        ) {
-            message =
-                chat.message?.videoMessage?.caption ||
-                chat.message?.ephemeralMessage?.message?.videoMessage
-                    ?.caption ||
-                ''
-        }
-    }
-    return message
 }
 
 export const getParticipants = async (
@@ -89,14 +106,14 @@ export const getParticipants = async (
         Object.keys(chatOrMetadataOrkeyOrParticipantsOrJid).includes('key') &&
         Object.keys(chatOrMetadataOrkeyOrParticipantsOrJid).includes('message')
     ) {
-        let metadata = await socket!.groupMetadata(
+        let metadata = await socket.groupMetadata(
             (chatOrMetadataOrkeyOrParticipantsOrJid as proto.IWebMessageInfo)
                 .key.remoteJid || ''
         )
 
         participants = metadata.participants
     } else if (typeof chatOrMetadataOrkeyOrParticipantsOrJid === 'string') {
-        let metadata = await socket!.groupMetadata(
+        let metadata = await socket.groupMetadata(
             chatOrMetadataOrkeyOrParticipantsOrJid
         )
         participants = metadata.participants
@@ -132,10 +149,8 @@ export default class Message {
     ): Promise<proto.IWebMessageInfo> => {
         this.throwIfSocketEmpty()
         await this.socket!.presenceSubscribe(jid.remoteJid || '')
-        await delay(500)
 
         await this.socket!.sendPresenceUpdate('composing', jid.remoteJid || '')
-        await delay(2000)
 
         let msg = await this.socket!.sendMessage(
             jid.remoteJid || '',

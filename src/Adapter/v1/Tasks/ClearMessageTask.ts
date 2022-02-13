@@ -6,7 +6,7 @@ if (isProducation()) {
     scheduleJob(
         'clearAllMessage',
         {
-            rule: '0 0 0 * * *',
+            rule: '0 0 * * * *',
             tz: 'Asia/Jakarta'
         },
         async () => {
