@@ -7,7 +7,7 @@ import { isProducation } from './Infrastructure/Utils/validate'
 config()
 
 async function start() {
-    v1().start()
+    v1.start()
 }
 
 ;(async () => {
