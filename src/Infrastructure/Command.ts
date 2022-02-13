@@ -31,14 +31,16 @@ export default class Command {
         configuration.events.forEach((event) => {
             configuration.pattern ||= ''
             !configuration.whoCanUse?.length &&
-            (configuration.whoCanUse = ['all'])
-            
-            Logger().child({
-                event,
-                whoCanUse: configuration.whoCanUse,
-                productionOnly: configuration.productionOnly,
-                pattern: configuration.pattern
-            }).info(`Registering command handler for event: ${event}`)
+                (configuration.whoCanUse = ['all'])
+
+            Logger()
+                .child({
+                    event,
+                    whoCanUse: configuration.whoCanUse,
+                    productionOnly: configuration.productionOnly,
+                    pattern: configuration.pattern
+                })
+                .info(`Registering command handler for event: ${event}`)
             this.availableCommands[event].push(configuration)
         })
     }
@@ -167,9 +169,7 @@ export default class Command {
                         message,
                         props: futureProps
                     })
-                    this.queue.add(() =>
-                        cmd.handler(context as CommandHandler)
-                    )
+                    this.queue.add(() => cmd.handler(context as CommandHandler))
                 }
             )
 
@@ -211,9 +211,7 @@ export default class Command {
 
                             Object.assign(context, handlerResult)
                             this.queue.add(() =>
-                                handler(
-                                    context as CommandHandler
-                                )
+                                handler(context as CommandHandler)
                             )
                         }
                         break
@@ -306,9 +304,7 @@ export default class Command {
                             }
                             Object.assign(context, handlerResult)
                             this.queue.add(() =>
-                                handler(
-                                    context as CommandHandler
-                                )
+                                handler(context as CommandHandler)
                             )
                         }
                     } else if (matched) {
@@ -322,9 +318,7 @@ export default class Command {
                             handlerResult.props = props
                         }
                         Object.assign(context, handlerResult)
-                        this.queue.add(() =>
-                            handler(context as CommandHandler)
-                        )
+                        this.queue.add(() => handler(context as CommandHandler))
                     }
                 }
             )

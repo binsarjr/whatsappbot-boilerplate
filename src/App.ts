@@ -20,7 +20,7 @@ async function start() {
     await AutoImport(autoImportDir)
     await start()
     process.on('uncaughtException', function (err) {
-        if(isProducation()) return start()
+        if (isProducation()) return start()
         if (
             err.toString().includes('getaddrinfo') ||
             err.toString().includes('logged out')

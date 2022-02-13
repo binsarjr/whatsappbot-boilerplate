@@ -2,7 +2,8 @@ import {
     BaileysEventEmitter,
     Chat,
     ConnectionState,
-    Contact, GroupMetadata,
+    Contact,
+    GroupMetadata,
     jidNormalizedUser,
     MessageUserReceipt,
     PresenceData,
@@ -152,9 +153,7 @@ export default class Store {
     constructor(config: StoreConfig) {
         let { filepath, chatKey, logger } = config
         this.filepath = Store.sessionFile(filepath)
-        this.logger =
-            logger ||
-            MyLogger().child({ stream: 'in-mem-store' })
+        this.logger = logger || MyLogger().child({ stream: 'in-mem-store' })
         this.chatKey = chatKey || waChatKey(true)
         this.chats = new this.KeyedDB(this.chatKey, (c: Chat) => c.id)
     }

@@ -6,9 +6,9 @@ import Logger, { deleteLoggerObject } from '../Logger'
  * @param globDir list of directories to search
  * @returns Promise<void>
  */
-export const AutoImport =async (globDir: string[]) =>{
+export const AutoImport = async (globDir: string[]) => {
     let loggerName = 'Importing'
-    let futures=await Promise.all(
+    let futures = await Promise.all(
         globDir.map(
             (location) =>
                 new Promise((resolve, reject) => {
@@ -28,5 +28,5 @@ export const AutoImport =async (globDir: string[]) =>{
         )
     )
     deleteLoggerObject(loggerName)
-                return futures
+    return futures
 }

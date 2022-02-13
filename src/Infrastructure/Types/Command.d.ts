@@ -7,7 +7,7 @@ export type CmdType =
     | 'chat-update-without-trigger'
     | 'list-response-message'
 
-export interface CommandHandler<Props = any> extends MessageContext{
+export interface CommandHandler<Props = any> extends MessageContext {
     chat: proto.IWebMessageInfo
     message: string
     props: Props
