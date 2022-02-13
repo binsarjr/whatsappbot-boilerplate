@@ -2,6 +2,7 @@ import { config } from 'dotenv'
 import path from 'path'
 import v1 from './Adapter/v1'
 import { AutoImport } from './Infrastructure/Utils/import'
+import { isProducation } from './Infrastructure/Utils/validate'
 
 config()
 
@@ -19,6 +20,7 @@ async function start() {
     await AutoImport(autoImportDir)
     await start()
     process.on('uncaughtException', function (err) {
+        if(isProducation()) return start()
         if (
             err.toString().includes('getaddrinfo') ||
             err.toString().includes('logged out')

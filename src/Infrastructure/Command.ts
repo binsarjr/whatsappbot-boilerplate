@@ -2,6 +2,7 @@ import { proto, WASocket } from '@adiwajshing/baileys'
 import { Command as Commander, CommanderError } from 'commander'
 import PQueue from 'p-queue'
 import Auth from './Auth'
+import Logger from './Logger'
 import Message, { getMessageCaption } from './Message'
 import {
     CmdType,
@@ -30,7 +31,14 @@ export default class Command {
         configuration.events.forEach((event) => {
             configuration.pattern ||= ''
             !configuration.whoCanUse?.length &&
-                (configuration.whoCanUse = ['all'])
+            (configuration.whoCanUse = ['all'])
+            
+            Logger().child({
+                event,
+                whoCanUse: configuration.whoCanUse,
+                productionOnly: configuration.productionOnly,
+                pattern: configuration.pattern
+            }).info(`Registering command handler for event: ${event}`)
             this.availableCommands[event].push(configuration)
         })
     }
@@ -160,7 +168,7 @@ export default class Command {
                         props: futureProps
                     })
                     this.queue.add(() =>
-                        cmd.handler(context as CommandHandler & MessageContext)
+                        cmd.handler(context as CommandHandler)
                     )
                 }
             )
@@ -181,7 +189,7 @@ export default class Command {
                     return
                 }
 
-                let handlerResult: CommandHandler = {
+                let handlerResult: Partial<CommandHandler> = {
                     chat: last,
                     message,
                     props: {}
@@ -204,7 +212,7 @@ export default class Command {
                             Object.assign(context, handlerResult)
                             this.queue.add(() =>
                                 handler(
-                                    context as CommandHandler & MessageContext
+                                    context as CommandHandler
                                 )
                             )
                         }
@@ -267,7 +275,7 @@ export default class Command {
                     let bodyListMessage =
                         response?.singleSelectReply?.selectedRowId || ''
 
-                    let handlerResult: CommandHandler = {
+                    let handlerResult: Partial<CommandHandler> = {
                         chat: last,
                         message,
                         props: {}
@@ -299,7 +307,7 @@ export default class Command {
                             Object.assign(context, handlerResult)
                             this.queue.add(() =>
                                 handler(
-                                    context as CommandHandler & MessageContext
+                                    context as CommandHandler
                                 )
                             )
                         }
@@ -315,7 +323,7 @@ export default class Command {
                         }
                         Object.assign(context, handlerResult)
                         this.queue.add(() =>
-                            handler(context as CommandHandler & MessageContext)
+                            handler(context as CommandHandler)
                         )
                     }
                 }

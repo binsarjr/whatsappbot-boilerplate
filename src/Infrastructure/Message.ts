@@ -14,7 +14,7 @@ export const getQuotedMessageCaptionWith = (
     type?: 'ephemeralMessage' | 'viewOnceMessage'
 ) => {
     let msg: proto.IMessage | null = m.message!
-    if (type) msg = (m.message![type] as proto.IFutureProofMessage)?.message!
+    if (type && Object.keys(m).includes(type)) msg = (m.message![type] as proto.IFutureProofMessage)?.message!
     return (
         msg?.extendedTextMessage?.contextInfo?.quotedMessage?.conversation ||
         msg?.imageMessage?.contextInfo?.quotedMessage?.conversation ||
@@ -28,7 +28,7 @@ export const getMessageCaptionWith = (
     type?: 'ephemeralMessage' | 'viewOnceMessage'
 ) => {
     let msg: proto.IMessage | null = m.message!
-    if (type) msg = (m.message![type] as proto.IFutureProofMessage)?.message!
+    if (type && Object.keys(m).includes(type)) msg = (m.message![type] as proto.IFutureProofMessage)?.message!
     return (
         msg?.conversation ||
         msg?.extendedTextMessage?.text ||
@@ -60,6 +60,31 @@ export const getQuotedMessageCaption = (m: proto.IWebMessageInfo) =>
     getQuotedMessageCaptionWith(m, 'viewOnceMessage') ||
     null
 
+/**
+ * Get message content ignoring that is ephemeral or view once
+ * @param chat chat update
+ * @returns proto.IMessage message
+ */
+export const getMessage = (chat: proto.IWebMessageInfo) => {
+    if ('ephemeralMessage' in chat.message!) {
+        return chat.message.ephemeralMessage!.message
+    } else if ('viewOnceMessage' in chat.message!) {
+        return chat.message.viewOnceMessage!.message
+    } else {
+        return chat.message
+    }
+}
+
+export const getImageOrVideo = (chat: proto.IWebMessageInfo) => {
+    let msg = getMessage(chat)
+    return (
+        msg?.imageMessage ||
+        msg?.extendedTextMessage?.contextInfo?.quotedMessage?.imageMessage ||
+        msg?.videoMessage ||
+        msg?.extendedTextMessage?.contextInfo?.quotedMessage?.videoMessage ||
+        null
+    )
+}
 /**
  * Get message id from replied message
  * @param chat chat update
@@ -131,7 +156,7 @@ export const getParticipants = async (
 }
 export default class Message {
     socket?: WASocket
-    throwIfSocketEmpty() {
+    private throwIfSocketEmpty() {
         if (!this.socket)
             throw new Error('Please bind first before use this function')
     }
@@ -167,7 +192,19 @@ export default class Message {
         options: MiscMessageGenerationOptions = {}
     ) => {
         Object.assign(options, { quoted: chat })
-        this.sendMessageWTyping(chat.key, message, options)
+        return this.sendMessageWTyping(chat.key, message, options)
+    }
+
+    replyAsPrivate = async (
+        chat: proto.IWebMessageInfo,
+        message: AnyMessageContent,
+        options: MiscMessageGenerationOptions = {}
+    ) => {
+        let key = chat.key
+        key.remoteJid = getPersonalJid(chat)
+        Object.assign(options, { quoted: chat })
+
+        return this.sendMessageWTyping(key, message, options)
     }
 
     /**
@@ -196,6 +233,8 @@ export default class Message {
         return {
             reply: async (message, options) =>
                 this.reply(chat, message, options),
+            replyAsPrivate: async (message, options) =>
+                this.replyAsPrivate(chat, message, options),
             sendWithRead: (message, options) =>
                 this.sendWithRead(chat.key, message, options),
             sendMessageWTyping: (message, options) =>

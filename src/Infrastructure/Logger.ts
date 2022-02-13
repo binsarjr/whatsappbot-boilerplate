@@ -1,12 +1,16 @@
-import Logger from '@ptkdev/logger'
+import pino from 'pino'
 
-class MyLogger extends Logger {
-    trace(message: string, tag?: string) {
-        super.debug(message, `Trace => ${tag}`)
+let loggers: {[k: string]:pino.Logger} = {}
+
+export const deleteLoggerObject = (name: string) => delete loggers[name]
+
+export default (name: string='WhatsappBot', options?: pino.LoggerOptions) => {
+    if(!loggers[name]) {
+        loggers[name] = pino({...{
+            name: name,
+            level: 'trace'
+        },...options})
     }
-    warn(message: string, tag?: string) {
-        super.warning(message, tag)
-    }
+    return loggers[name]
+    
 }
-
-export default new MyLogger()

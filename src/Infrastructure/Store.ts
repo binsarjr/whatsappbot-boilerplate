@@ -2,9 +2,7 @@ import {
     BaileysEventEmitter,
     Chat,
     ConnectionState,
-    Contact,
-    DEFAULT_CONNECTION_CONFIG,
-    GroupMetadata,
+    Contact, GroupMetadata,
     jidNormalizedUser,
     MessageUserReceipt,
     PresenceData,
@@ -17,6 +15,7 @@ import { Comparable } from '@adiwajshing/keyed-db/lib/Types'
 import fs from 'fs'
 import path from 'path'
 import { Logger } from 'pino'
+import MyLogger from './Logger'
 
 const updateMessageWithReceipt = (
     msg: WAMessage,
@@ -155,7 +154,7 @@ export default class Store {
         this.filepath = Store.sessionFile(filepath)
         this.logger =
             logger ||
-            DEFAULT_CONNECTION_CONFIG.logger.child({ stream: 'in-mem-store' })
+            MyLogger().child({ stream: 'in-mem-store' })
         this.chatKey = chatKey || waChatKey(true)
         this.chats = new this.KeyedDB(this.chatKey, (c: Chat) => c.id)
     }
