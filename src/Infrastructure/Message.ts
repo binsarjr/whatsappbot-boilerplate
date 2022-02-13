@@ -7,17 +7,16 @@ import {
     proto,
     WASocket
 } from '@adiwajshing/baileys'
+import { MessageContext } from './Types/Message'
 
 export const getQuotedMessageCaptionWith = (
     m: proto.IWebMessageInfo,
     type?: 'ephemeralMessage' | 'viewOnceMessage'
 ) => {
-    let msg: proto.IMessage | null =
-        m.message!
+    let msg: proto.IMessage | null = m.message!
     if (type) msg = (m.message![type] as proto.IFutureProofMessage)?.message!
     return (
-        msg?.conversation ||
-        msg?.extendedTextMessage?.contextInfo?.quotedMessage?.conversation||
+        msg?.extendedTextMessage?.contextInfo?.quotedMessage?.conversation ||
         msg?.imageMessage?.contextInfo?.quotedMessage?.conversation ||
         msg?.videoMessage?.contextInfo?.quotedMessage?.conversation ||
         null
@@ -32,7 +31,7 @@ export const getMessageCaptionWith = (
     if (type) msg = (m.message![type] as proto.IFutureProofMessage)?.message!
     return (
         msg?.conversation ||
-        msg?.extendedTextMessage?.text||
+        msg?.extendedTextMessage?.text ||
         msg?.imageMessage?.caption ||
         msg?.videoMessage?.caption ||
         null
@@ -191,6 +190,17 @@ export default class Message {
         )
 
         return this.sendMessageWTyping(jid, message, options)
+    }
+
+    makingContext(chat: proto.IWebMessageInfo): MessageContext {
+        return {
+            reply: async (message, options) =>
+                this.reply(chat, message, options),
+            sendWithRead: (message, options) =>
+                this.sendWithRead(chat.key, message, options),
+            sendMessageWTyping: (message, options) =>
+                this.sendMessageWTyping(chat.key, message, options)
+        }
     }
 
     bind(sock: WASocket) {

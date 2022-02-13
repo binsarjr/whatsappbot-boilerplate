@@ -9,6 +9,7 @@ import {
     CommandHandler,
     CommandPropsHandler
 } from './Types/Command'
+import { MessageContext } from './Types/Message'
 import { isProducation } from './Utils/validate'
 
 export default class Command {
@@ -105,6 +106,7 @@ export default class Command {
 
     bind(socket: WASocket) {
         this.message.bind(socket)
+
         socket.ev.on('messages.upsert', async (m) => {
             if (m.type === 'append' || m.type === 'notify') {
                 console.log(JSON.stringify(m, undefined, 2))
@@ -117,7 +119,10 @@ export default class Command {
             )
                 return
             let last = m.messages[0]
+            const context = this.message.makingContext(last)
+
             const message = getMessageCaption(last) || ''
+            console.log(JSON.stringify(m, null, 2))
 
             this.availableCommands['chat-update-without-trigger'].forEach(
                 async (cmd) => {
@@ -149,12 +154,13 @@ export default class Command {
                         if (!next) return
                         futureProps = props
                     }
+                    Object.assign(context, {
+                        chat: last,
+                        message,
+                        props: futureProps
+                    })
                     this.queue.add(() =>
-                        cmd.handler({
-                            chat: last,
-                            message,
-                            props: futureProps
-                        })
+                        cmd.handler(context as CommandHandler & MessageContext)
                     )
                 }
             )
@@ -194,7 +200,13 @@ export default class Command {
                                 if (!next) return
                                 handlerResult.props = props
                             }
-                            this.queue.add(() => handler(handlerResult))
+
+                            Object.assign(context, handlerResult)
+                            this.queue.add(() =>
+                                handler(
+                                    context as CommandHandler & MessageContext
+                                )
+                            )
                         }
                         break
                     case 'object':
@@ -211,8 +223,13 @@ export default class Command {
                                     if (!next) return
                                     handlerResult.props = props
                                 }
-
-                                this.queue.add(() => handler(handlerResult))
+                                Object.assign(context, handlerResult)
+                                this.queue.add(() =>
+                                    handler(
+                                        context as CommandHandler &
+                                            MessageContext
+                                    )
+                                )
                             }
                         }
 
@@ -279,7 +296,12 @@ export default class Command {
                                 if (!next) return
                                 handlerResult.props = props
                             }
-                            this.queue.add(() => handler(handlerResult))
+                            Object.assign(context, handlerResult)
+                            this.queue.add(() =>
+                                handler(
+                                    context as CommandHandler & MessageContext
+                                )
+                            )
                         }
                     } else if (matched) {
                         if (propsHandler) {
@@ -291,7 +313,10 @@ export default class Command {
                             if (!next) return
                             handlerResult.props = props
                         }
-                        this.queue.add(() => handler(handlerResult))
+                        Object.assign(context, handlerResult)
+                        this.queue.add(() =>
+                            handler(context as CommandHandler & MessageContext)
+                        )
                     }
                 }
             )

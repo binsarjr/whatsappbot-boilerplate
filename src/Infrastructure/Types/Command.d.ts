@@ -1,5 +1,6 @@
 import { proto } from '@adiwajshing/baileys'
 import { Command } from 'commander'
+import { MessageContext } from './Message'
 
 export type CmdType =
     | 'chat-update'
@@ -44,5 +45,5 @@ export interface CommandConfiguration {
      */
     propsHandler?: CommandPropsHandler
 
-    handler: (kwargs: CommandHandler) => Promise<any>
+    handler: (context: CommandHandler & MessageContext) => Promise<any>
 }
