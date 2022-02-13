@@ -168,12 +168,17 @@ export default class Message {
      * @param message Object message
      * @param options MessageOptions
      */
-    sendMessageWTyping = async (
+    sendMessage = async (
         jid: proto.IMessageKey,
         message: AnyMessageContent,
         options?: MiscMessageGenerationOptions
     ): Promise<proto.IWebMessageInfo> => {
         this.throwIfSocketEmpty()
+        this.socket!.sendReadReceipt(
+            jid.remoteJid || '',
+            jid.participant || '',
+            [jid.id || '']
+        )
         await this.socket!.presenceSubscribe(jid.remoteJid || '')
 
         await this.socket!.sendPresenceUpdate('composing', jid.remoteJid || '')
@@ -193,7 +198,7 @@ export default class Message {
         message: AnyMessageContent,
         options: MiscMessageGenerationOptions = {}
     ) => {
-        return this.sendMessageWTyping(chat.key, message, options)
+        return this.sendMessage(chat.key, message, options)
     }
 
     replyIt = async (
@@ -224,28 +229,6 @@ export default class Message {
         return this.reply(chat, message, options)
     }
 
-    /**
-     * Send Message with read
-     * @param id id whatsapp
-     * @param message Object message
-     * @param options MessageOptions
-     */
-    sendWithRead = async (
-        jid: proto.IMessageKey,
-        message: AnyMessageContent,
-        options?: MiscMessageGenerationOptions
-    ) => {
-        this.throwIfSocketEmpty()
-
-        await (this.socket as WASocket)!.sendReadReceipt(
-            jid.remoteJid || '',
-            jid.participant || '',
-            [jid.id || '']
-        )
-
-        return this.sendMessageWTyping(jid, message, options)
-    }
-
     makingContext(chat: proto.IWebMessageInfo): MessageContext {
         return {
             reply: async (message, options) =>
@@ -256,10 +239,8 @@ export default class Message {
                 this.replyAsPrivate(chat, message, options),
             replyItAsPrivate: async (message, options) =>
                 this.replyItAsPrivate(chat, message, options),
-            sendWithRead: (message, options) =>
-                this.sendWithRead(chat.key, message, options),
-            sendMessageWTyping: (message, options) =>
-                this.sendMessageWTyping(chat.key, message, options)
+            sendMessage: (message, options) =>
+                this.sendMessage(chat.key, message, options)
         }
     }
 

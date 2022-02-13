@@ -14,6 +14,5 @@ export interface MessageContext {
     replyIt: SendMessage
     replyAsPrivate: SendMessage
     replyItAsPrivate: SendMessage
-    sendWithRead: SendMessage
-    sendMessageWTyping: SendMessage
+    sendMessage: SendMessage
 }
