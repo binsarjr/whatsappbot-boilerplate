@@ -56,7 +56,7 @@ export class MessageSend {
         options: MiscMessageGenerationOptions = {}
     ) => {
         Object.assign(options, { quoted: chat })
-        return this.sendMessage(chat, message, options)
+        return this.sendMessage(chat.key, message, options)
     }
 
     replyAsPrivate = async (
@@ -65,7 +65,7 @@ export class MessageSend {
         options: MiscMessageGenerationOptions = {}
     ) => {
         chat.key.remoteJid = getPersonalJid(chat)
-        return this.sendMessage(chat, message, options)
+        return this.sendMessage(chat.key, message, options)
     }
 
     replyItAsPrivate = async (
@@ -75,6 +75,6 @@ export class MessageSend {
     ) => {
         Object.assign(options, { quoted: chat })
         chat.key.remoteJid = getPersonalJid(chat)
-        return this.sendMessage(chat, message, options)
+        return this.sendMessage(chat.key, message, options)
     }
 }
