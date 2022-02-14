@@ -10,7 +10,7 @@ if (isProducation()) {
             tz: 'Asia/Jakarta'
         },
         async () => {
-            await v1.clear()
+            await v1().clear()
         }
     )
 }

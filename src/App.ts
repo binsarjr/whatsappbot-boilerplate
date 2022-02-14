@@ -3,11 +3,11 @@ import path from 'path'
 import v1 from './Adapter/v1'
 import { AutoImport } from './Infrastructure/Utils/import'
 import { isProducation } from './Infrastructure/Utils/validate'
-
 config()
 
+
 async function start() {
-    v1.start()
+    v1().start()
 }
 
 ;(async () => {
