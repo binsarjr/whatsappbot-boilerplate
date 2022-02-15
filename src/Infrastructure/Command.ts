@@ -3,14 +3,14 @@ import { Command as Commander, CommanderError } from 'commander'
 import PQueue from 'p-queue'
 import Auth from './Auth'
 import Logger from './Logger'
-import Message, { getMessageCaption } from './Message'
+import Message, { getMessage, getMessageCaption } from './Message'
 import {
     CmdType,
     CommandConfiguration,
     CommandHandler,
     CommandPropsHandler
 } from './Types/Command'
-import { MessageContext } from './Types/Message'
+import glob2regex from './Utils/glob2regex'
 import { isProducation } from './Utils/validate'
 
 export default class Command {
@@ -20,7 +20,6 @@ export default class Command {
     private message: Message = new Message()
     availableCommands: { [key in CmdType]: CommandConfiguration[] } = {
         'chat-update': [],
-        'chat-update-without-trigger': [],
         'list-response-message': []
     }
     /**
@@ -28,10 +27,11 @@ export default class Command {
      * @param configuration Command configuration
      */
     register(configuration: CommandConfiguration) {
+        configuration.events ||= ['chat-update']
         configuration.events.forEach((event) => {
-            configuration.pattern ||= ''
-            !configuration.whoCanUse?.length &&
-                (configuration.whoCanUse = ['all'])
+            configuration.pattern ||= /.*/is
+            configuration.hears ||= '*'
+            configuration.whoCanUse ||= ['all']
 
             Logger()
                 .child({
@@ -82,7 +82,7 @@ export default class Command {
             }
         } catch (error) {
             if (error instanceof CommanderError) {
-                const showHelp = () => {
+                const showHelp = () =>
                     this.message.reply(chat, {
                         text: (
                             program.helpInformation() +
@@ -90,15 +90,17 @@ export default class Command {
                             helps.join('\n')
                         ).trim()
                     })
-                }
+
                 switch (error.code) {
                     case 'commander.missingArgument':
-                        this.message.reply(chat, { text: error.toString() })
-                        showHelp()
+                        await this.message.reply(chat, {
+                            text: error.toString()
+                        })
+                        await showHelp()
                         break
                     case 'commander.helpDisplayed':
                     case 'commander.help':
-                        showHelp()
+                        await showHelp()
                         break
 
                     default:
@@ -114,6 +116,14 @@ export default class Command {
         }
     }
 
+    validateHears(hears: string | string[], message: string) {
+        if (typeof hears === 'string') {
+            return glob2regex(hears).test(message)
+        } else {
+            return hears.some((hear) => glob2regex(hear).test(message))
+        }
+    }
+
     bind(socket: WASocket) {
         this.message.bind(socket)
 
@@ -125,58 +135,19 @@ export default class Command {
                 m.messages[0].key.fromMe ||
                 Object.keys(m.messages[0].message || []).includes(
                     'protocolMessage'
-                )
+                ) ||
+                m.type == 'append'
             )
                 return
             let last = m.messages[0]
-            if (!last.message) return
+            if (!Boolean(last.message)) return
+
             const context = this.message.makingContext(last)
 
             const message = getMessageCaption(last) || ''
 
-            this.availableCommands['chat-update-without-trigger'].forEach(
-                async (cmd) => {
-                    /**
-                     * Auhtorization who can use
-                     */
-                    if (
-                        !(await Auth.authorization(
-                            socket,
-                            cmd.whoCanUse!,
-                            last
-                        ))
-                    )
-                        return
-                    /**
-                     * if productionOnly is true then check if is production
-                     */
-                    if (cmd.productionOnly && !isProducation()) {
-                        return
-                    }
-                    let { propsHandler } = cmd
-                    let futureProps = {}
-                    if (propsHandler) {
-                        let { next, props } = await this.propsHandlerLayer(
-                            propsHandler,
-                            last,
-                            message
-                        )
-                        if (!next) return
-                        futureProps = props
-                    }
-                    Object.assign(context, {
-                        chat: last,
-                        message,
-                        props: futureProps
-                    })
-                    this.queue.add(() => cmd.handler(context as CommandHandler))
-                }
-            )
-
             // Chat update event handler
             this.availableCommands['chat-update'].forEach(async (cmd) => {
-                const { pattern, handler, propsHandler } = cmd
-
                 /**
                  * Auhtorization who can use
                  */
@@ -195,59 +166,29 @@ export default class Command {
                     props: {}
                 }
 
-                switch (typeof pattern) {
-                    case 'string':
-                        if (message == pattern) {
-                            if (propsHandler) {
-                                let { next, props } =
-                                    await this.propsHandlerLayer(
-                                        propsHandler,
-                                        last,
-                                        message
-                                    )
-                                if (!next) return
-                                handlerResult.props = props
-                            }
-
-                            Object.assign(context, handlerResult)
-                            this.queue.add(() =>
-                                handler(context as CommandHandler)
-                            )
-                        }
-                        break
-                    case 'object':
-                        if (pattern instanceof RegExp) {
-                            let matched = message.match(pattern)
-                            if (matched) {
-                                if (propsHandler) {
-                                    let { next, props } =
-                                        await this.propsHandlerLayer(
-                                            propsHandler,
-                                            last,
-                                            message
-                                        )
-                                    if (!next) return
-                                    handlerResult.props = props
-                                }
-                                Object.assign(context, handlerResult)
-                                this.queue.add(() =>
-                                    handler(
-                                        context as CommandHandler &
-                                            MessageContext
-                                    )
-                                )
-                            }
-                        }
-
-                        break
+                if (
+                    cmd.pattern?.test(message) &&
+                    this.validateHears(cmd.hears!, message)
+                ) {
+                    if (cmd.propsHandler) {
+                        let { next, props } = await this.propsHandlerLayer(
+                            cmd.propsHandler,
+                            last,
+                            message
+                        )
+                        if (!next) return
+                        handlerResult.props = props
+                    }
+                    Object.assign(context, handlerResult)
+                    this.queue.add(() =>
+                        cmd.handler(context as CommandHandler)
+                    )
                 }
             })
 
             // Chat update list response message event handler
             this.availableCommands['list-response-message'].forEach(
                 async (cmd) => {
-                    const { pattern, handler, propsHandler } = cmd
-
                     /**
                      * Auhtorization who can use
                      */
@@ -265,11 +206,8 @@ export default class Command {
                     if (cmd.productionOnly && !isProducation()) {
                         return
                     }
-                    let matched: RegExpMatchArray | null | string = null
-                    let response =
-                        last.message?.listResponseMessage ||
-                        last.message?.ephemeralMessage?.message
-                            ?.listResponseMessage
+                    let response = getMessage(last)?.listResponseMessage
+
                     let bodyListMessage =
                         response?.singleSelectReply?.selectedRowId || ''
 
@@ -278,39 +216,13 @@ export default class Command {
                         message,
                         props: {}
                     }
-                    switch (typeof pattern) {
-                        case 'string':
-                            if (bodyListMessage == pattern) matched = pattern
-                            break
-                        case 'object':
-                            matched = bodyListMessage.match(pattern)
-                            break
-                    }
-
                     if (
-                        response &&
-                        response?.singleSelectReply?.selectedRowId == pattern
+                        cmd.pattern?.test(bodyListMessage) &&
+                        this.validateHears(cmd.hears!, bodyListMessage)
                     ) {
-                        if (matched) {
-                            if (propsHandler) {
-                                let { next, props } =
-                                    await this.propsHandlerLayer(
-                                        propsHandler,
-                                        last,
-                                        message
-                                    )
-                                if (!next) return
-                                handlerResult.props = props
-                            }
-                            Object.assign(context, handlerResult)
-                            this.queue.add(() =>
-                                handler(context as CommandHandler)
-                            )
-                        }
-                    } else if (matched) {
-                        if (propsHandler) {
+                        if (cmd.propsHandler) {
                             let { next, props } = await this.propsHandlerLayer(
-                                propsHandler,
+                                cmd.propsHandler,
                                 last,
                                 message
                             )
@@ -318,7 +230,9 @@ export default class Command {
                             handlerResult.props = props
                         }
                         Object.assign(context, handlerResult)
-                        this.queue.add(() => handler(context as CommandHandler))
+                        this.queue.add(() =>
+                            cmd.handler(context as CommandHandler)
+                        )
                     }
                 }
             )

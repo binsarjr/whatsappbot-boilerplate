@@ -14,11 +14,11 @@ import {
 export const getMessage = (chat: proto.IWebMessageInfo) => {
     let keys = Object.keys(chat.message || {})
     if (keys.includes('ephemeralMessage')) {
-        return chat.message?.ephemeralMessage!.message
+        return chat?.message?.ephemeralMessage!.message
     } else if (keys.includes('viewOnceMessage')) {
-        return chat.message?.viewOnceMessage!.message
+        return chat?.message?.viewOnceMessage!.message
     } else {
-        return chat.message
+        return chat?.message
     }
 }
 
