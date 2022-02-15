@@ -5,7 +5,6 @@ import { AutoImport } from './Infrastructure/Utils/import'
 import { isProducation } from './Infrastructure/Utils/validate'
 config()
 
-
 async function start() {
     v1().start()
 }

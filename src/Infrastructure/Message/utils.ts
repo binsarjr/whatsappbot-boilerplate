@@ -6,28 +6,29 @@ import {
     WASocket
 } from '@adiwajshing/baileys'
 
-export const getQuotedMessageCaptionWith = (
-    m: proto.IWebMessageInfo,
-    type?: 'ephemeralMessage' | 'viewOnceMessage'
-) => {
-    let msg: proto.IMessage | null = m.message!
-    if (type && Object.keys(m).includes(type))
-        msg = (m.message![type] as proto.IFutureProofMessage)?.message!
-    return (
-        msg?.extendedTextMessage?.contextInfo?.quotedMessage?.conversation ||
-        msg?.imageMessage?.contextInfo?.quotedMessage?.conversation ||
-        msg?.videoMessage?.contextInfo?.quotedMessage?.conversation ||
-        null
-    )
+/**
+ * Get message content ignoring that is ephemeral or view once
+ * @param chat chat update
+ * @returns proto.IMessage message
+ */
+export const getMessage = (chat: proto.IWebMessageInfo) => {
+    let keys = Object.keys(chat.message || {})
+    if (keys.includes('ephemeralMessage')) {
+        return chat.message?.ephemeralMessage!.message
+    } else if (keys.includes('viewOnceMessage')) {
+        return chat.message?.viewOnceMessage!.message
+    } else {
+        return chat.message
+    }
 }
 
-export const getMessageCaptionWith = (
-    m: proto.IWebMessageInfo,
-    type?: 'ephemeralMessage' | 'viewOnceMessage'
-) => {
-    let msg: proto.IMessage | null = m.message!
-    if (type && Object.keys(m).includes(type))
-        msg = (m.message![type] as proto.IFutureProofMessage)?.message!
+/**
+ * Get caption from message
+ * @param chat chat update
+ * @returns string caption
+ */
+export const getMessageCaption = (m: proto.IWebMessageInfo) => {
+    let msg = getMessage(m)
     return (
         msg?.conversation ||
         msg?.extendedTextMessage?.text ||
@@ -38,41 +39,20 @@ export const getMessageCaptionWith = (
 }
 
 /**
- * Get caption from message
- * @param chat chat update
- * @returns string caption
- */
-export const getMessageCaption = (m: proto.IWebMessageInfo) =>
-    getMessageCaptionWith(m) ||
-    getMessageCaptionWith(m, 'ephemeralMessage') ||
-    getMessageCaptionWith(m, 'viewOnceMessage') ||
-    null
-
-/**
  * Get extended caption from message
  * @param chat chat update
  * @returns string caption
  */
-export const getQuotedMessageCaption = (m: proto.IWebMessageInfo) =>
-    getQuotedMessageCaptionWith(m) ||
-    getQuotedMessageCaptionWith(m, 'ephemeralMessage') ||
-    getQuotedMessageCaptionWith(m, 'viewOnceMessage') ||
-    null
-
-/**
- * Get message content ignoring that is ephemeral or view once
- * @param chat chat update
- * @returns proto.IMessage message
- */
-export const getMessage = (chat: proto.IWebMessageInfo) => {
-    let keys = Object.keys(chat.message!)
-    if (keys.includes('ephemeralMessage')) {
-        return chat.message?.ephemeralMessage!.message
-    } else if (keys.includes('viewOnceMessage')) {
-        return chat.message?.viewOnceMessage!.message
-    } else {
-        return chat.message
-    }
+export const getQuotedMessageCaption = (m: proto.IWebMessageInfo) => {
+    let msg = getMessage(m)
+    return (
+        msg?.extendedTextMessage?.contextInfo?.quotedMessage?.conversation ||
+        msg?.extendedTextMessage?.contextInfo?.quotedMessage
+            ?.extendedTextMessage?.text ||
+        msg?.imageMessage?.contextInfo?.quotedMessage?.conversation ||
+        msg?.videoMessage?.contextInfo?.quotedMessage?.conversation ||
+        null
+    )
 }
 
 export const getImageOrVideo = (chat: proto.IWebMessageInfo) => {

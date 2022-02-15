@@ -129,10 +129,10 @@ export default class Command {
             )
                 return
             let last = m.messages[0]
+            if (!last.message) return
             const context = this.message.makingContext(last)
 
             const message = getMessageCaption(last) || ''
-            console.log(JSON.stringify(m, null, 2))
 
             this.availableCommands['chat-update-without-trigger'].forEach(
                 async (cmd) => {
