@@ -20,7 +20,7 @@ interface Glob2RegexConfig {
     flags: string
 }
 
-export default function (
+export function glob2regex (
     glob: string,
     opts: Partial<Glob2RegexConfig> = {
         extended: true,
@@ -58,8 +58,6 @@ export default function (
             case '^':
             case '+':
             case '.':
-            case '(':
-            case ')':
             case '=':
             case '!':
             case '|':
@@ -79,17 +77,28 @@ export default function (
                     break
                 }
 
-            case '{':
+            case '(':
                 if (extended) {
                     inGroup = true
                     reStr += '('
+                    break
+                } else reStr += '\\('
+
+            case ')':
+                if (extended) {
+                    inGroup = false
+                    reStr += ')'
+                    break
+                } else reStr += '\\)'
+            case '{':
+                if (extended) {
+                    reStr += '{'
                     break
                 }
 
             case '}':
                 if (extended) {
-                    inGroup = false
-                    reStr += ')'
+                    reStr += '}'
                     break
                 }
 
@@ -97,8 +106,11 @@ export default function (
                 if (inGroup) {
                     reStr += '|'
                     break
+                } else if(extended) {
+                reStr += c
+                }else {
+                    reStr += '\\' + c
                 }
-                reStr += '\\' + c
                 break
 
             case '*':

@@ -10,8 +10,8 @@ import {
     CommandHandler,
     CommandPropsHandler
 } from './Types/Command'
-import glob2regex from './Utils/glob2regex'
 import { isProducation } from './Utils/validate'
+
 
 export default class Command {
     queue = new PQueue({
@@ -30,7 +30,6 @@ export default class Command {
         configuration.events ||= ['chat-update']
         configuration.events.forEach((event) => {
             configuration.pattern ||= /.*/is
-            configuration.hears ||= '*'
             configuration.whoCanUse ||= ['all']
 
             Logger()
@@ -116,13 +115,6 @@ export default class Command {
         }
     }
 
-    validateHears(hears: string | string[], message: string) {
-        if (typeof hears === 'string') {
-            return glob2regex(hears).test(message)
-        } else {
-            return hears.some((hear) => glob2regex(hear).test(message))
-        }
-    }
 
     bind(socket: WASocket) {
         this.message.bind(socket)
@@ -167,8 +159,7 @@ export default class Command {
                 }
 
                 if (
-                    cmd.pattern?.test(message) &&
-                    this.validateHears(cmd.hears!, message)
+                    cmd.pattern?.test(message)
                 ) {
                     if (cmd.propsHandler) {
                         let { next, props } = await this.propsHandlerLayer(
@@ -217,8 +208,7 @@ export default class Command {
                         props: {}
                     }
                     if (
-                        cmd.pattern?.test(bodyListMessage) &&
-                        this.validateHears(cmd.hears!, bodyListMessage)
+                        cmd.pattern?.test(bodyListMessage)
                     ) {
                         if (cmd.propsHandler) {
                             let { next, props } = await this.propsHandlerLayer(

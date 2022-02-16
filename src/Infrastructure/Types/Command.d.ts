@@ -42,14 +42,6 @@ export interface CommandConfiguration {
      */
     pattern?: RegExp
     /**
-     * Default: `*`
-     *
-     * @type {Globa2Regex}
-     *
-     * The hears must be return true if you want to continue handler process
-     */
-    hears?: string | string[]
-    /**
      * Default: ['chat-update']
      */
     events?: CmdType[]
