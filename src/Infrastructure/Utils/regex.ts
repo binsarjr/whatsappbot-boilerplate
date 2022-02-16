@@ -20,7 +20,7 @@ interface Glob2RegexConfig {
     flags: string
 }
 
-export function glob2regex (
+export function glob2regex(
     glob: string,
     opts: Partial<Glob2RegexConfig> = {
         extended: true,
@@ -106,9 +106,9 @@ export function glob2regex (
                 if (inGroup) {
                     reStr += '|'
                     break
-                } else if(extended) {
-                reStr += c
-                }else {
+                } else if (extended) {
+                    reStr += c
+                } else {
                     reStr += '\\' + c
                 }
                 break

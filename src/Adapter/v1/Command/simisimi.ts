@@ -1,7 +1,6 @@
 import got from 'got'
 import v1 from '..'
 
-
 v1().command.register({
     whoCanUse: ['private'],
     handler: async (context) => {

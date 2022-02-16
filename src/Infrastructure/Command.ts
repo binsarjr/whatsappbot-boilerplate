@@ -12,7 +12,6 @@ import {
 } from './Types/Command'
 import { isProducation } from './Utils/validate'
 
-
 export default class Command {
     queue = new PQueue({
         concurrency: 10
@@ -115,7 +114,6 @@ export default class Command {
         }
     }
 
-
     bind(socket: WASocket) {
         this.message.bind(socket)
 
@@ -158,9 +156,7 @@ export default class Command {
                     props: {}
                 }
 
-                if (
-                    cmd.pattern?.test(message)
-                ) {
+                if (cmd.pattern?.test(message)) {
                     if (cmd.propsHandler) {
                         let { next, props } = await this.propsHandlerLayer(
                             cmd.propsHandler,
@@ -171,9 +167,7 @@ export default class Command {
                         handlerResult.props = props
                     }
                     Object.assign(context, handlerResult)
-                    this.queue.add(() =>
-                        cmd.handler(context as CommandHandler)
-                    )
+                    this.queue.add(() => cmd.handler(context as CommandHandler))
                 }
             })
 
@@ -207,9 +201,7 @@ export default class Command {
                         message,
                         props: {}
                     }
-                    if (
-                        cmd.pattern?.test(bodyListMessage)
-                    ) {
+                    if (cmd.pattern?.test(bodyListMessage)) {
                         if (cmd.propsHandler) {
                             let { next, props } = await this.propsHandlerLayer(
                                 cmd.propsHandler,
