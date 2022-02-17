@@ -35,6 +35,9 @@ export default class WABOT {
         this.config.auth = this.auth.state
         this.command = new Command()
     }
+    setVersion(version: [number, number, number]) {
+        this.config.version = version
+    }
 
     addSocketBinding(...socks: ((socket: WASocket) => void)[]) {
         this.socketsBinding.push(...socks)

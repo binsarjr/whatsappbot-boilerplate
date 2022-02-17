@@ -15,6 +15,7 @@
         "@adiwajshing/baileys": "^4.0.0",
         "@adiwajshing/keyed-db": "^0.2.4",
         "@hapi/boom": "^9.1.4",
+        "cheerio": "^1.0.0-rc.10",
         "commander": "^8.3.0",
         "dotenv": "^15.0.0",
         "glob": "^7.2.0",

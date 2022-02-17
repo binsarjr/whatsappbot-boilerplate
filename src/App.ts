@@ -3,9 +3,12 @@ import path from 'path'
 import v1 from './Adapter/v1'
 import { AutoImport } from './Infrastructure/Utils/import'
 import { isProducation } from './Infrastructure/Utils/validate'
+import { getCurrentWaWebVersion } from './Infrastructure/Utils/waversion'
 config()
 
 async function start() {
+    const waweb_version = await getCurrentWaWebVersion()
+    waweb_version && v1().setVersion(waweb_version)
     v1().start()
 }
 
