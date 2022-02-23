@@ -4,6 +4,9 @@ import {
     proto,
     WASocket
 } from '@adiwajshing/baileys'
+import { MessageContent } from '../Types/Message'
+import { randomNumber } from '../Utils/number'
+import { sleep } from './../Utils/promises'
 import { getPersonalJid } from './utils'
 export class MessageSend {
     socket?: WASocket
@@ -20,7 +23,7 @@ export class MessageSend {
      */
     sendMessage = async (
         jid: proto.IMessageKey,
-        message: AnyMessageContent,
+        message: MessageContent,
         options?: MiscMessageGenerationOptions
     ): Promise<proto.IWebMessageInfo> => {
         this.throwIfSocketEmpty()
@@ -31,10 +34,10 @@ export class MessageSend {
         )
         await this.socket!.presenceSubscribe(jid.remoteJid || '')
         await this.socket!.sendPresenceUpdate('composing', jid.remoteJid || '')
-
+        await sleep(randomNumber(1000, 3000))
         let msg = await this.socket!.sendMessage(
             jid.remoteJid || '',
-            message,
+            message as AnyMessageContent,
             options
         )
         await this.socket!.sendPresenceUpdate('paused', jid.remoteJid || '')
@@ -44,7 +47,7 @@ export class MessageSend {
 
     reply = async (
         chat: proto.IWebMessageInfo,
-        message: AnyMessageContent,
+        message: MessageContent,
         options: MiscMessageGenerationOptions = {}
     ) => {
         return this.sendMessage(chat.key, message, options)
@@ -52,7 +55,7 @@ export class MessageSend {
 
     replyIt = async (
         chat: proto.IWebMessageInfo,
-        message: AnyMessageContent,
+        message: MessageContent,
         options: MiscMessageGenerationOptions = {}
     ) => {
         Object.assign(options, { quoted: chat })
@@ -61,7 +64,7 @@ export class MessageSend {
 
     replyAsPrivate = async (
         chat: proto.IWebMessageInfo,
-        message: AnyMessageContent,
+        message: MessageContent,
         options: MiscMessageGenerationOptions = {}
     ) => {
         chat.key.remoteJid = getPersonalJid(chat)
@@ -70,7 +73,7 @@ export class MessageSend {
 
     replyItAsPrivate = async (
         chat: proto.IWebMessageInfo,
-        message: AnyMessageContent,
+        message: MessageContent,
         options: MiscMessageGenerationOptions = {}
     ) => {
         Object.assign(options, { quoted: chat })

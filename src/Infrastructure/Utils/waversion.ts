@@ -22,25 +22,54 @@ const wawebGot = got.extend({
 export const getCurrentWaWebVersion = async (): Promise<
     [number, number, number] | null
 > => {
-    const body = await wawebGot(waweb).text()
-    const $ = cheerio.load(body)
-
-    let scriptUrl: string = ''
-    $('script').each((i, el) => {
-        let src = $(el).attr('src')
-        if (src?.includes('/bootstrap_qr.')) {
-            scriptUrl = `${waweb}${src}`
-        }
-    })
-
-    const scriptBody = await wawebGot(scriptUrl).text()
-
-    const version = scriptBody.match(/VERSION_BASE:"([0-9.]+)"/is)
-    return (
-        (version?.[1].split('.', 3).map(parseFloat) as [
+    const versionToArr = (version: string) => (
+        (version.split('.', 3).map(parseFloat) as [
             number,
             number,
             number
         ]) || null
     )
+    const fromWebScript = async () => {
+        const body = await wawebGot(waweb).text()
+        const $ = cheerio.load(body)
+
+        let scriptUrl: string = ''
+        $('script').each((i, el) => {
+            let src = $(el).attr('src')
+            if (src?.includes('/bootstrap_qr.')) {
+                scriptUrl = `${waweb}${src}`
+            }
+        })
+
+        const scriptBody = await wawebGot(scriptUrl).text()
+
+        const version = scriptBody.match(/VERSION_BASE:"([0-9.]+)"/is)
+        return versionToArr(version?.[1]||'')
+    }
+
+    const fromApi = async () => {
+        const responses: {
+            isBroken: boolean
+            isBelowSoft: boolean
+            isBelowHard: boolean
+            hardUpdateTime: number
+            beta: null
+            currentVersion: string
+        } = await wawebGot
+            .get('https://web.whatsapp.com/check-update', {
+                
+                searchParams: {
+                    version: '1',
+                    platform: 'web'
+                }
+            })
+            .json()
+        return versionToArr(responses.currentVersion)
+    }
+
+    try {
+        return await fromApi()
+    } catch (error) {
+        return fromWebScript()
+    }
 }
