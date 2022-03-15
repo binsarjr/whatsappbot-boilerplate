@@ -26,6 +26,7 @@ export class MessageSend {
         message: MessageContent,
         options?: MiscMessageGenerationOptions
     ): Promise<proto.IWebMessageInfo> => {
+        await sleep(randomNumber(100, 500))
         this.throwIfSocketEmpty()
         await this.socket!.sendReadReceipt(
             jid.remoteJid || '',
@@ -34,7 +35,7 @@ export class MessageSend {
         )
         await this.socket!.presenceSubscribe(jid.remoteJid || '')
         await this.socket!.sendPresenceUpdate('composing', jid.remoteJid || '')
-        await sleep(randomNumber(1000, 3000))
+        await sleep(randomNumber(1000, 2000))
         let msg = await this.socket!.sendMessage(
             jid.remoteJid || '',
             message as AnyMessageContent,

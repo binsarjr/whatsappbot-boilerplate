@@ -1,9 +1,9 @@
 import { proto, WASocket } from '@adiwajshing/baileys'
 import { Command as Commander, CommanderError } from 'commander'
-import PQueue from 'p-queue'
 import Auth from './Auth'
 import Logger from './Logger'
 import Message, { getMessage, getMessageCaption } from './Message'
+import Queue from './Queue'
 import {
     CmdType,
     CommandConfiguration,
@@ -13,13 +13,20 @@ import {
 import { isProducation } from './Utils/validate'
 
 export default class Command {
-    queue = new PQueue({
+    queue = Queue.with('command_handler',{
         concurrency: 10
     })
+    private prefix: string[] = []
     private message: Message = new Message()
-    availableCommands: { [key in CmdType]: CommandConfiguration[] } = {
+    private commands: { [key in CmdType]: CommandConfiguration[] } = {
         'chat-update': [],
         'list-response-message': []
+    }
+    addPrefiz(prefix: string) {
+        this.prefix.push(prefix)
+    }
+    setPrefix(prefix: string[]) {
+        this.prefix = prefix
     }
     /**
      * Registration command handler
@@ -30,7 +37,7 @@ export default class Command {
         configuration.events.forEach((event) => {
             configuration.pattern ||= /.*/is
             configuration.whoCanUse ||= ['all']
-
+            configuration.prefix = this.prefix
             Logger()
                 .child({
                     event,
@@ -39,7 +46,7 @@ export default class Command {
                     pattern: configuration.pattern
                 })
                 .info(`Registering command handler for event: ${event}`)
-            this.availableCommands[event].push(configuration)
+            this.commands[event].push(configuration)
         })
     }
 
@@ -121,14 +128,7 @@ export default class Command {
             if (m.type === 'append' || m.type === 'notify') {
                 console.log(JSON.stringify(m, undefined, 2))
             }
-            if (
-                m.messages[0].key.fromMe ||
-                Object.keys(m.messages[0].message || []).includes(
-                    'protocolMessage'
-                ) ||
-                m.type == 'append'
-            )
-                return
+
             let last = m.messages[0]
             if (!Boolean(last.message)) return
 
@@ -137,7 +137,7 @@ export default class Command {
             const message = getMessageCaption(last) || ''
 
             // Chat update event handler
-            this.availableCommands['chat-update'].forEach(async (cmd) => {
+            this.commands['chat-update'].forEach(async (cmd) => {
                 /**
                  * Auhtorization who can use
                  */
@@ -172,52 +172,42 @@ export default class Command {
             })
 
             // Chat update list response message event handler
-            this.availableCommands['list-response-message'].forEach(
-                async (cmd) => {
-                    /**
-                     * Auhtorization who can use
-                     */
-                    if (
-                        !(await Auth.authorization(
-                            socket,
-                            cmd.whoCanUse!,
-                            last
-                        ))
-                    )
-                        return
-                    /**
-                     * if productionOnly is true then check if is production
-                     */
-                    if (cmd.productionOnly && !isProducation()) {
-                        return
-                    }
-                    let response = getMessage(last)?.listResponseMessage
-
-                    let bodyListMessage =
-                        response?.singleSelectReply?.selectedRowId || ''
-
-                    let handlerResult: Partial<CommandHandler> = {
-                        chat: last,
-                        message,
-                        props: {}
-                    }
-                    if (cmd.pattern?.test(bodyListMessage)) {
-                        if (cmd.propsHandler) {
-                            let { next, props } = await this.propsHandlerLayer(
-                                cmd.propsHandler,
-                                last,
-                                message
-                            )
-                            if (!next) return
-                            handlerResult.props = props
-                        }
-                        Object.assign(context, handlerResult)
-                        this.queue.add(() =>
-                            cmd.handler(context as CommandHandler)
-                        )
-                    }
+            this.commands['list-response-message'].forEach(async (cmd) => {
+                /**
+                 * Auhtorization who can use
+                 */
+                if (!(await Auth.authorization(socket, cmd.whoCanUse!, last)))
+                    return
+                /**
+                 * if productionOnly is true then check if is production
+                 */
+                if (cmd.productionOnly && !isProducation()) {
+                    return
                 }
-            )
+                let response = getMessage(last)?.listResponseMessage
+
+                let bodyListMessage =
+                    response?.singleSelectReply?.selectedRowId || ''
+
+                let handlerResult: Partial<CommandHandler> = {
+                    chat: last,
+                    message: bodyListMessage,
+                    props: {}
+                }
+                if (cmd.pattern?.test(bodyListMessage)) {
+                    if (cmd.propsHandler) {
+                        let { next, props } = await this.propsHandlerLayer(
+                            cmd.propsHandler,
+                            last,
+                            message
+                        )
+                        if (!next) return
+                        handlerResult.props = props
+                    }
+                    Object.assign(context, handlerResult)
+                    this.queue.add(() => cmd.handler(context as CommandHandler))
+                }
+            })
         })
     }
 }

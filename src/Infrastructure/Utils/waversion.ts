@@ -22,13 +22,9 @@ const wawebGot = got.extend({
 export const getCurrentWaWebVersion = async (): Promise<
     [number, number, number] | null
 > => {
-    const versionToArr = (version: string) => (
-        (version.split('.', 3).map(parseFloat) as [
-            number,
-            number,
-            number
-        ]) || null
-    )
+    const versionToArr = (version: string) =>
+        (version.split('.', 3).map(parseFloat) as [number, number, number]) ||
+        null
     const fromWebScript = async () => {
         const body = await wawebGot(waweb).text()
         const $ = cheerio.load(body)
@@ -44,7 +40,7 @@ export const getCurrentWaWebVersion = async (): Promise<
         const scriptBody = await wawebGot(scriptUrl).text()
 
         const version = scriptBody.match(/VERSION_BASE:"([0-9.]+)"/is)
-        return versionToArr(version?.[1]||'')
+        return versionToArr(version?.[1] || '')
     }
 
     const fromApi = async () => {
@@ -57,7 +53,6 @@ export const getCurrentWaWebVersion = async (): Promise<
             currentVersion: string
         } = await wawebGot
             .get('https://web.whatsapp.com/check-update', {
-                
                 searchParams: {
                     version: '1',
                     platform: 'web'

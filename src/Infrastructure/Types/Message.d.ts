@@ -5,18 +5,7 @@ import {
 } from '@adiwajshing/baileys'
 
 export type MessageContent = AnyMessageContent & {
-    contextInfo?: Partial<{
-        /**
-         * Preview Link
-         */
-        externalAdReply: Partial<{
-            title: string
-            body: string
-            thumbnail: Buffer
-        }>
-        forwardingScore: number
-        isForwarded: boolean
-    }>
+    contextInfo?: Partial<proto.IContextInfo>
 }
 
 export type SendMessage<Response = proto.IWebMessageInfo> = (

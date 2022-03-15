@@ -28,7 +28,7 @@ export type CommandUserType =
     | 'private'
     | 'group'
     | 'all'
-export interface CommandConfiguration {
+export type CommandConfiguration = Partial<{
     /**
      * default: `/*\/i`
      * Command pattern to match. set empty string if you want to match all messages or use event chat-update without trigger
@@ -40,23 +40,26 @@ export interface CommandConfiguration {
      * @example `/^\/(?<command>\w+)\s+(?<args>.*)$/i`
      *
      */
-    pattern?: RegExp
+    pattern: RegExp
+    prefix: string[]
     /**
      * Default: ['chat-update']
      */
-    events?: CmdType[]
-    productionOnly?: boolean
+    events: CmdType[]
+    productionOnly: boolean
     /**
      * Default: ['all']
      */
-    whoCanUse?: CommandUserType[]
+    whoCanUse: CommandUserType[]
     /**
      * Prop handler is for how we manage the data to be fetched and go to the next stage
      * which will be sent to the props object in the handler function
      */
-    propsHandler?: CommandPropsHandler
-    /**
-     * Handler function
-     */
-    handler: (context: CommandHandler) => Promise<any>
-}
+    propsHandler: CommandPropsHandler
+}> &
+    Required<{
+        /**
+         * Handler function
+         */
+        handler: (context: CommandHandler) => Promise<any>
+    }>
