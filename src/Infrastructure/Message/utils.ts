@@ -45,12 +45,21 @@ export const getMessageCaption = (m: proto.IWebMessageInfo) => {
  */
 export const getQuotedMessageCaption = (m: proto.IWebMessageInfo) => {
     let msg = getMessage(m)
+    const quotedMessage =
+        msg?.extendedTextMessage?.contextInfo?.quotedMessage?.ephemeralMessage
+            ?.message ||
+        msg?.extendedTextMessage?.contextInfo?.quotedMessage?.viewOnceMessage
+            ?.message ||
+        msg?.extendedTextMessage?.contextInfo?.quotedMessage
     return (
         msg?.extendedTextMessage?.contextInfo?.quotedMessage?.conversation ||
         msg?.extendedTextMessage?.contextInfo?.quotedMessage
             ?.extendedTextMessage?.text ||
         msg?.imageMessage?.contextInfo?.quotedMessage?.conversation ||
         msg?.videoMessage?.contextInfo?.quotedMessage?.conversation ||
+        quotedMessage?.extendedTextMessage?.text ||
+        quotedMessage?.imageMessage?.caption ||
+        quotedMessage?.videoMessage?.caption ||
         null
     )
 }
@@ -88,8 +97,9 @@ export const getId = (chat: proto.IWebMessageInfo): string => {
 export const getPersonalJid = (chat: proto.IWebMessageInfo): string => {
     let jid = chat.key.remoteJid || ''
 
-    return (
-        isJidUser(jid) ? jid : chat.participant || chat.key.participant || ''
+    return (isJidUser(jid)
+        ? jid
+        : chat.participant || chat.key.participant || ''
     ).replace(/:.*@/, '@')
 }
 

@@ -3,7 +3,6 @@ import { Command as Commander, CommanderError } from 'commander'
 import Auth from './Auth'
 import Logger from './Logger'
 import Message, { getMessage, getMessageCaption } from './Message'
-import Queue from './Queue'
 import {
     CmdType,
     CommandConfiguration,
@@ -13,9 +12,6 @@ import {
 import { isProducation } from './Utils/validate'
 
 export default class Command {
-    queue = Queue.with('command_handler',{
-        concurrency: 10
-    })
     private prefix: string[] = []
     private message: Message = new Message()
     private commands: { [key in CmdType]: CommandConfiguration[] } = {
@@ -167,7 +163,7 @@ export default class Command {
                         handlerResult.props = props
                     }
                     Object.assign(context, handlerResult)
-                    this.queue.add(() => cmd.handler(context as CommandHandler))
+                    cmd.handler(context as CommandHandler)
                 }
             })
 
@@ -205,7 +201,7 @@ export default class Command {
                         handlerResult.props = props
                     }
                     Object.assign(context, handlerResult)
-                    this.queue.add(() => cmd.handler(context as CommandHandler))
+                    cmd.handler(context as CommandHandler)
                 }
             })
         })
