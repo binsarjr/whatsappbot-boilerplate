@@ -1,4 +1,8 @@
 interface Glob2RegexConfig {
+    // with ^
+    withPrefix: boolean
+    // with $
+    withSuffix: boolean
     /**
      * Whether we are matching so called "extended" globs (like bash) and should
      * support single character matching, matching ranges of characters, group
@@ -24,6 +28,8 @@ export function glob2regex(
     glob: string,
     opts: Partial<Glob2RegexConfig> = {
         extended: true,
+        withPrefix: true,
+        withSuffix: true,
         globstar: false,
         flags: 'is'
     }
@@ -153,8 +159,19 @@ export function glob2regex(
     // When regexp 'g' flag is specified don't
     // constrain the regular expression with ^ & $
     if (!flags || !~flags.indexOf('g')) {
-        reStr = '^' + reStr + '$'
+        let re = ''
+        if (opts.withPrefix) re += '^'
+        re += reStr
+        if (opts.withSuffix) re += '$'
+        reStr = re
     }
 
     return new RegExp(reStr, flags)
+}
+
+export function concatRegexp(reg: RegExp, exp: RegExp) {
+    let flags = reg.flags + exp.flags
+
+    flags = Array.from(new Set(flags.split(''))).join('')
+    return new RegExp(reg.source + exp.source, flags)
 }

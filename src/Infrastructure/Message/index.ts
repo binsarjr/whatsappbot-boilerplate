@@ -3,10 +3,8 @@ import Queue from '../Queue'
 import { MessageContext } from '../Types/Message'
 import { MessageSend } from './messages-send'
 
-export * from './utils'
-
 export default class Message extends MessageSend {
-    private queue = Queue.with('wamessage',{
+    private queue = Queue.with('wamessage', {
         concurrency: 5
     })
     makingContext(chat: proto.IWebMessageInfo): MessageContext {

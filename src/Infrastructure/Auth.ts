@@ -6,7 +6,7 @@ import {
     useSingleFileAuthState,
     WASocket
 } from '@adiwajshing/baileys'
-import { getParticipants, getPersonalJid } from './Message'
+import { getParticipants, getPersonalJid } from './Foundations/messages'
 import Store from './Store'
 import { CommandUserType } from './Types/Command'
 

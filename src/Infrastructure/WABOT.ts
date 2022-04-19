@@ -6,20 +6,19 @@ import makeWASocket, {
 } from '@adiwajshing/baileys'
 import { Boom } from '@hapi/boom'
 import Auth from './Auth'
-import Command from './Command'
 import Message from './Message'
 import Store from './Store'
 
 export default class WABOT {
     message: Message
     store: Store
-    command: Command
     auth: Auth
     socket?: WASocket
     private socketsBinding: ((socket: WASocket) => void)[] = []
     private eventsBinding: ((ev: BaileysEventEmitter) => void)[] = []
     private name: string
     private config: Partial<SocketConfig>
+
     constructor(options: { name: string; config: Partial<SocketConfig> }) {
         let { name, config } = options
         this.name = name
@@ -33,7 +32,6 @@ export default class WABOT {
             this.config.auth = undefined
         }
         this.config.auth = this.auth.state
-        this.command = new Command()
     }
     setVersion(version: [number, number, number]) {
         this.config.version = version
@@ -75,7 +73,6 @@ export default class WABOT {
         this.message.bind(this.socket)
         this.store.bind(this.socket.ev)
         this.store.saving()
-        this.command.bind(this.socket)
         this.socketsBinding.forEach((sock) => sock(this.socket!))
         this.eventsBinding.forEach((ev) => ev(this.socket!.ev))
 
