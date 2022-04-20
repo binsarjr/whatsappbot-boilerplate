@@ -2,7 +2,7 @@ import { IMessageMiddleware } from '../Middleware/MessageMiddleware'
 import { Request } from '../Request'
 import { ICommand } from '../Command/ICommand'
 import { Context, EVENTS, LIST_COMMANDS } from './Interface'
-import { WASocket } from '@adiwajshing/baileys'
+import { MessageUpdateType, WAMessage, WASocket } from '@adiwajshing/baileys'
 import Message from '../Message'
 import InvokerMessageMiddleware from './InvokerMessageMiddleware'
 
@@ -40,6 +40,24 @@ export default class Invoker {
         this.commands.onMessage.push(command)
         return this
     }
+    private async bindMessageUpsert(
+        context: Partial<Context>,
+        m: {
+            messages: WAMessage[]
+            type: MessageUpdateType
+        }
+    ) {
+        if (m.messages?.length) if (m.messages[0].key.fromMe) return
+
+        if (!Boolean(m.messages[0].message)) return
+
+        const request = new Request()
+
+        await new InvokerMessageMiddleware()
+            .setCommands(this.commands)
+            .setMiddlewares(this.middlewares.messages)
+            .handle(request, context as Context)
+    }
 
     public bind(socket: WASocket) {
         const messageContext = new Message()
@@ -48,12 +66,7 @@ export default class Invoker {
             phoneUser: socket.user
         }
 
-        this.invokers.map((invoker) => invoker.bind(socket))
         socket.ev.on('messages.upsert', async (m) => {
-            if (m.messages?.length) if (m.messages[0].key.fromMe) return
-
-            if (!Boolean(m.messages[0].message)) return
-
             const context = {
                 messages: m.messages,
                 lastMessage: m.messages[0]!,
@@ -64,12 +77,12 @@ export default class Invoker {
                 context,
                 messageContext.makingContext(context.lastMessage!)
             )
-            const request = new Request()
-
-            await new InvokerMessageMiddleware()
-                .setCommands(this.commands)
-                .setMiddlewares(this.middlewares.messages)
-                .handle(request, context as Context)
+            await Promise.all([
+                ...this.invokers.map((invoker) =>
+                    invoker.bindMessageUpsert(context, m)
+                ),
+                this.bindMessageUpsert(context, m)
+            ])
         })
     }
     private assertCommand(command: ICommand) {
