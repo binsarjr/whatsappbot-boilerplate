@@ -5,7 +5,7 @@ import { MessageSend } from './messages-send'
 
 export default class Message extends MessageSend {
     private queue = Queue.with('wamessage', {
-        concurrency: 5
+        concurrency: 100
     })
     makingContext(chat: proto.IWebMessageInfo): MessageContext {
         return {

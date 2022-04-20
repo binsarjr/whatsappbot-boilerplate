@@ -4,7 +4,7 @@ import { Request } from '../Infrastructure/Request'
 
 export default class implements ICommand {
     async execute(request: Request<any>, context: Context): Promise<void> {
-        context.reply({
+        context.replyIt({
             text: 'Hello, group!'
         })
     }

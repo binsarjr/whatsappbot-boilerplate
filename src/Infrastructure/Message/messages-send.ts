@@ -5,9 +5,9 @@ import {
     WASocket
 } from '@adiwajshing/baileys'
 import { MessageContent } from '../Types/Message'
-import { randomNumber } from '../Foundations/number'
-import { sleep } from './../Foundations/promises'
-import { getPersonalJid } from '../Foundations/messages'
+import { randomNumber } from '../Supports/number'
+import { sleep } from './../Supports/promises'
+import { getPersonalJid } from '../Supports/messages'
 export class MessageSend {
     socket?: WASocket
 

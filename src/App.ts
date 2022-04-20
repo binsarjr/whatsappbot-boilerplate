@@ -1,9 +1,9 @@
 import { config } from 'dotenv'
 import path from 'path'
 import v1 from './Adapter/v1'
-import { AutoImport } from './Infrastructure/Foundations/import'
-import { isProducation } from './Infrastructure/Foundations/validation'
-import { getCurrentWaWebVersion } from './Infrastructure/Foundations/waversion'
+import { AutoImport } from './Infrastructure/Supports/import'
+import { isProducation } from './Infrastructure/Supports/validation'
+import { getCurrentWaWebVersion } from './Infrastructure/Supports/waversion'
 config()
 
 async function start() {

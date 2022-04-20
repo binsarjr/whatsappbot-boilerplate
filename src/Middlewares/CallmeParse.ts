@@ -1,4 +1,4 @@
-import { getMessageCaption } from '../Infrastructure/Foundations/messages'
+import { getMessageCaption } from '../Infrastructure/Supports/messages'
 import { Context } from '../Infrastructure/Invoker/Interface'
 import {
     IMessageMiddleware,

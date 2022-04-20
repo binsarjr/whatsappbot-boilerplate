@@ -1,6 +1,6 @@
 import { scheduleJob } from 'node-schedule'
 import v1 from '..'
-import { isProducation } from '../../../Infrastructure/Foundations/validation'
+import { isProducation } from '../../../Infrastructure/Supports/validation'
 
 if (isProducation()) {
     scheduleJob(

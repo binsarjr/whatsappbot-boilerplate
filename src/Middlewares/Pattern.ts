@@ -2,8 +2,8 @@ import { isJidGroup, isJidUser } from '@adiwajshing/baileys'
 import {
     getMessage,
     getMessageCaption
-} from '../Infrastructure/Foundations/messages'
-import { concatRegexp, glob2regex } from '../Infrastructure/Foundations/regex'
+} from '../Infrastructure/Supports/messages'
+import { concatRegexp, glob2regex } from '../Infrastructure/Supports/regex'
 import { Context } from '../Infrastructure/Invoker/Interface'
 import {
     IMessageMiddleware,
