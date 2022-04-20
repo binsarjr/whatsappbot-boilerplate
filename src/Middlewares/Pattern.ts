@@ -18,10 +18,10 @@ interface Options {
 
 export default class Pattern implements IMessageMiddleware {
     public static prefix: RegExp = /^(?:!|\/|\.|#)\s{0,}/
-    private pattern: RegExp
+    private patterns: RegExp[] = []
     constructor(
         // Regex or Glob2Regex
-        pattern: RegExp | string,
+        pattern: RegExp | string | (string | RegExp)[],
         opts: Options = {
             prefix: true
         }
@@ -29,21 +29,28 @@ export default class Pattern implements IMessageMiddleware {
         if (typeof opts.prefix == 'undefined') {
             opts.prefix = true
         }
-
+        if (Array.isArray(pattern))
+            pattern.forEach((p) => {
+                this.patterns.push(this.patternHandler(p))
+            })
+        else this.patterns = [this.patternHandler(pattern)]
+        if (opts?.prefix) {
+            this.patterns = this.patterns.map((pattern) =>
+                concatRegexp(Pattern.prefix, pattern)
+            )
+        }
+    }
+    private patternHandler(pattern: string | RegExp) {
         if (typeof pattern == 'string') {
-            this.pattern = glob2regex(pattern, {
+            return glob2regex(pattern, {
                 extended: true,
                 withPrefix: false,
                 withSuffix: true,
                 globstar: false,
                 flags: 'is'
             })
-        } else {
-            this.pattern = pattern
         }
-        if (opts?.prefix) {
-            this.pattern = concatRegexp(Pattern.prefix, this.pattern)
-        }
+        return pattern
     }
     async handle(
         request: Request<any>,
@@ -56,8 +63,10 @@ export default class Pattern implements IMessageMiddleware {
             msg?.buttonsResponseMessage?.selectedButtonId ||
             getMessageCaption(context.lastMessage) ||
             ''
-        if (this.pattern.test(body)) {
-            return next(request)
+        for (const pattern of this.patterns) {
+            if (pattern.test(body)) {
+                return next(request)
+            }
         }
     }
 }

@@ -10,8 +10,8 @@ export class Request<Data = { [i: string]: any } | any> {
         this.data[name] = value
     }
 
-    get(name: keyof Data, defaultValue: string | null = null) {
-        return this.has(name) ? this.data[name] : defaultValue
+    get(name: keyof Data) {
+        return this.data[name]
     }
     delete(name: keyof Data) {
         if (this.has(name)) delete this.data[name]
