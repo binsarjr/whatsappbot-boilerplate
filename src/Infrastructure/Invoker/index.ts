@@ -45,18 +45,31 @@ export default class Invoker {
         m: {
             messages: WAMessage[]
             type: MessageUpdateType
-        }
+        },
+        recursive: boolean = false
     ) {
+        const promises = []
+
+        if (recursive)
+            promises.push(
+                ...this.invokers.map((invoker) =>
+                    invoker.bindMessageUpsert(context, m, recursive)
+                )
+            )
+
         if (m.messages?.length) if (m.messages[0].key.fromMe) return
 
         if (!Boolean(m.messages[0].message)) return
 
         const request = new Request()
 
-        await new InvokerMessageMiddleware()
-            .setCommands(this.commands)
-            .setMiddlewares(this.middlewares.messages)
-            .handle(request, context as Context)
+        promises.push(
+            new InvokerMessageMiddleware()
+                .setCommands(this.commands)
+                .setMiddlewares(this.middlewares.messages)
+                .handle(request, context as Context)
+        )
+        await Promise.all(promises)
     }
 
     public bind(socket: WASocket) {
@@ -79,7 +92,7 @@ export default class Invoker {
             )
             await Promise.all([
                 ...this.invokers.map((invoker) =>
-                    invoker.bindMessageUpsert(context, m)
+                    invoker.bindMessageUpsert(context, m, true)
                 ),
                 this.bindMessageUpsert(context, m)
             ])
